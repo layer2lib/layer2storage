@@ -16,30 +16,32 @@ interface PartyKey {
 */
 
 interface State {
-  Id: string
+  id: string
   nonce: string
-  isClosed: boolean
+  isClosed?: boolean
   party: Address
   counterparty: Address
   sig: string
   sig_counterpary?: string
 }
-
+/*
 interface Balances {
   balanceA: BigNumber
   balanceB: BigNumber
 }
-
+*/
 interface LCState extends State {
   openVCs: number
-  vc_root_hash: string
-  balances: Balances
+  vcRootHash: string
+  balanceA: BigNumber
+  balanceB: BigNumber
 }
 
 interface VCState extends State {
-  LC_ID: string
-  balances: Balances
-  app_state?: StrObject // challenger?: address;
+  lcId: string
+  balanceA: BigNumber
+  balanceB: BigNumber
+  appState?: StrObject // challenger?: address;
 }
 
 /*
@@ -48,6 +50,33 @@ interface PaymentState extends LCState {
   balance: string
 }
 */
+export function makeLCState(
+  id: string,
+  nonce: string,
+  party: Address,
+  counterparty: Address,
+  sig: string,
+  vcRootHash: string,
+  balanceA: BigNumber,
+  balanceB: BigNumber,
+  openVCs: number = 0
+): LCState {
+  return { id, nonce, party, counterparty, sig, openVCs, vcRootHash, balanceA, balanceB }
+}
+
+export function makeVCState(
+  id: string,
+  nonce: string,
+  party: Address,
+  counterparty: Address,
+  sig: string,
+  lcId: string,
+  balanceA: BigNumber,
+  balanceB: BigNumber,
+  appState?: StrObject
+): VCState {
+  return { id, nonce, party, counterparty, sig, lcId, balanceA, balanceB, appState }
+}
 
 export interface L2Database {
   logdriver(): void
@@ -74,71 +103,101 @@ export class GunStorageProxy implements L2Database {
   private dbKeys: { [key: string]: boolean } = {}
   private prefix: string = ''
   private gun: any
+
+  private _lcs: any
+  private _lc: any
   constructor(gun: Gun, prefix: string = 'layer2') {
     // super()
     if (!gun) throw new Error('Redis instance missing from constructor')
     this.gun = gun
     this.prefix = prefix
+
+    this._lcs = this._db.get('ledgers')
+    this._lc = this._db.get('ledger')
   }
   logdriver() {
     // Log out current engine
     console.log('js-layer2lib using gun driver')
   }
+  private get _db() {
+    return this.gun.get(this.prefix)
+  }
+  private _ledgerByID(ledgerID: string) {
+    return this._lc.get(ledgerID)
+  }
+  /*private get _lcs() {
+    return this._db.get('ledgers')
+  }*/
   async set(k: string, v: StrObject) {
     if (!k) throw new Error('key cannot be null or empty')
     if (!v) throw new Error('value cannot be null or empty')
-    this.dbKeys[k] = true
-    await this.gun
-      .get(this.prefix)
-      .get(k)
-      .put(v)
+    // wthis.dbKeys[k] = true
+    await this._db.get(k).put(v)
   }
   async get(k: string) {
-    let res = await this.gun
-      .get(this.prefix)
-      .get(k)
-      .val()
+    let res = await this._db.get(k).val()
     return res
   }
   async keys() {
     return Object.keys(this.dbKeys)
   }
 
-  storeLC(data: LCState): Promise<LCState> {
-    return Promise.resolve(data)
+  async storeLC(data: LCState): Promise<LCState> {
+    if (!data.id) throw new Error('no id given')
+    const l = this._ledgerByID(data.id).put(data)
+    //.then((sdata: LCState) => sdata)
+    const c = await this._lcs.set(l)
+    // console.log('c', c)
+    return await l
+    // return Promise.resolve(data)
   }
   // replace if same nonce
-  updateLC(data: LCState): Promise<LCState> {
-    return Promise.resolve(data)
+  async updateLC(data: LCState): Promise<LCState> {
+    if (!data.id) throw new Error('no id given')
+    // optimize away?
+    const stored = !!this.getLC(data.id)
+    if (!stored) throw new Error('ledger id was not stored previously')
+
+    return this._ledgerByID(data.id)
+      .put(data)
+      .then((sdata: LCState) => sdata)
   }
   // latest by nonce
-  getLC(ledgerID: LCID): Promise<LCState> {
-    return Promise.resolve({} as LCState)
+  async getLC(ledgerID: LCID): Promise<LCState> {
+    if (!ledgerID) throw new Error('no id given')
+    return this._ledgerByID(ledgerID).once()
   }
   // latest by nonce
   getLCs(): Promise<LCState[]> {
-    return Promise.resolve([] as LCState[])
+    //let lcs: LCState[] = []
+    return this._lcs.map().once()
+    //.once((lc: LCState) => lcs.push(lc))
+    //return lcs
   }
-  delLC(id: LCID): Promise<void> {
-    return Promise.resolve()
+  async delLC(id: LCID): Promise<void> {
+    if (!id) throw new Error('no id given')
+    await this._lcs.unset(this._lc(id))
+    return this._lc(id)
+      .put(null)
+      .then((_: any) => null)
   }
 
-  storeVChannel(data: VCState): Promise<VCState> {
+  async storeVChannel(data: VCState): Promise<VCState> {
     return Promise.resolve(data)
   }
-  delVChannel(chan: VCID): Promise<void> {
+  async delVChannel(chan: VCID): Promise<void> {
     return Promise.resolve()
   }
   // replace if same nonce
-  updateVChannel(chan: VCID, data: VCState): Promise<VCState> {
+  async updateVChannel(chan: VCID, data: VCState): Promise<VCState> {
     return Promise.resolve(data)
   }
   // latest by nonce
-  getVChannel(ledger: VCID): Promise<VCState> {
+  async getVChannel(ledger: VCID): Promise<VCState> {
     return Promise.resolve({} as VCState)
   }
   // latest by nonce
-  getAllVChannels(ledger?: LCID): Promise<VCState[]> {
+  async getAllVChannels(ledger?: LCID): Promise<VCState[]> {
     return Promise.resolve([] as VCState[])
   }
 }
