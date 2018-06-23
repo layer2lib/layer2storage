@@ -135,7 +135,7 @@ export class GunStorageProxy implements L2Database {
     await this._db.get(k).put(v)
   }
   async get(k: string) {
-    let res = await this._db.get(k).val()
+    let res = await this._db.get(k).once()
     return res
   }
   async keys() {
@@ -168,18 +168,41 @@ export class GunStorageProxy implements L2Database {
     return this._ledgerByID(ledgerID).once()
   }
   // latest by nonce
-  getLCs(): Promise<LCState[]> {
-    //let lcs: LCState[] = []
-    return this._lcs.map().once()
-    //.once((lc: LCState) => lcs.push(lc))
-    //return lcs
+  async getLCs(): Promise<LCState[]> {
+    // going to hell for this but it must be done like this (for now)..
+    // .. must use timeout to aggregate the collection until
+    // .. gun supports length tracked lists
+    // TODO: store a length param as a seperate key with some atomic-like
+    const timeout = (ms: number) => new Promise(res => setTimeout(res, ms))
+    let lcs: LCState[] = []
+    this._lcs
+      .once()
+      .map()
+      .once((x: any) => {
+        console.log('x', x)
+        if (!!x) lcs.push(x)
+      })
+
+    return timeout(1000).then((x: any) => lcs)
   }
+
+  getLCsMap(cb: (lc: LCState) => void): void {
+    this._lcs
+      .once()
+      .map()
+      .once((x: any) => {
+        if (!!x) cb(x)
+      })
+  }
+
   async delLC(id: LCID): Promise<void> {
     if (!id) throw new Error('no id given')
-    await this._lcs.unset(this._lc(id))
-    return this._lc(id)
-      .put(null)
-      .then((_: any) => null)
+    if (!!(<any>id).id) throw new Error('object was given instead of id')
+
+    const l = await this._ledgerByID(id).once()
+    if (!l) throw new Error('lenger ' + id + ' does not exist to delete')
+    await this._lcs.unset(l)
+    return this._ledgerByID(id).put(null)
   }
 
   async storeVChannel(data: VCState): Promise<VCState> {

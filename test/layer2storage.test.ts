@@ -1,15 +1,15 @@
 import { GunStorageProxy, makeLCState, LCState } from '../src/layer2storage'
+process.env.GUN_ENV = 'false'
 import Gun from 'gun'
 require('gun/lib/then.js')
 require('gun/lib/unset.js')
 require('gun/lib/open.js')
-
-process.env.GUN_ENV = 'false'
 /**
  * Dummy test
  */
 describe('Dummy test', () => {
   let db: GunStorageProxy = null
+  let y: any
 
   it('works if true is truthy', () => {
     expect(true).toBeTruthy()
@@ -28,7 +28,7 @@ describe('Dummy test', () => {
     //expect(new DummyClass()).toBeInstanceOf(DummyClass)
   })
 
-  it('GunStorageProxy storeLC getLC getLCs', async () => {
+  it('GunStorageProxy storeLC getLC getLCs', async (done: any) => {
     const l: LCState = makeLCState('id1', 'nonce1', 'party', 'cparty', 'sig', 'root', '12', '5')
     const lclone = clone(l)
 
@@ -37,11 +37,35 @@ describe('Dummy test', () => {
     const val = await db.getLC(lclone.id)
     expect(val).toMatchObject(lclone)
 
-    await db.getLCs().then((lcs: any) => {
-      expect(lcs).toEqual(1)
-      expect(lcs[0]).toMatchObject(lclone)
+    y = val
+
+    const lcs = await db.getLCs()
+
+    expect(lcs.length).toEqual(1)
+    expect(lcs[0]).toMatchObject(lclone)
+
+    db.getLCsMap((lc: any) => {
+      expect(lc).toMatchObject(lclone)
+      done()
     })
     //expect(new DummyClass()).toBeInstanceOf(DummyClass)
+  })
+
+  it('GunStorageProxy del LC', async (done: any) => {
+    await db.delLC(y.id)
+    done()
+  })
+
+  it('GunStorageProxy check if LC deleted by getLC', async (done: any) => {
+    const val = await db.getLC(y.id)
+    expect(val).toBeNull()
+    done()
+  })
+
+  it('GunStorageProxy check if LC deleted by getLCs', async (done: any) => {
+    const lcs = await db.getLCs()
+    expect(lcs.length).toEqual(0)
+    done()
   })
 })
 
