@@ -1,15 +1,17 @@
-import { GunStorageProxy, makeLCState, LCState } from '../src/layer2storage'
+import { GunStorageProxy, makeLCState, LCState, VCState, makeVCState } from '../src/layer2storage'
 process.env.GUN_ENV = 'false'
 import Gun from 'gun'
 require('gun/lib/then.js')
 require('gun/lib/unset.js')
 require('gun/lib/open.js')
+//require('gun/lib/not.js')
 /**
  * Dummy test
  */
 describe('Dummy test', () => {
   let db: GunStorageProxy = null
-  let y: any
+  let led: any
+  let chan: any
 
   it('works if true is truthy', () => {
     expect(true).toBeTruthy()
@@ -37,7 +39,7 @@ describe('Dummy test', () => {
     const val = await db.getLC(lclone.id)
     expect(val).toMatchObject(lclone)
 
-    y = val
+    led = val
 
     const lcs = await db.getLCs()
 
@@ -51,13 +53,79 @@ describe('Dummy test', () => {
     //expect(new DummyClass()).toBeInstanceOf(DummyClass)
   })
 
+  // ===== channels test
+
+  it('GunStorageProxy storeVChannel getVChannel', async (done: any) => {
+    const vc: VCState = makeVCState(
+      'vcid1',
+      'nonce',
+      'partyA',
+      'counterp',
+      'sig',
+      led.id,
+      'bala',
+      'balb'
+    )
+    const vcclone = clone(vc)
+
+    await db.storeVChannel(vc)
+
+    const val = await db.getVChannel(vc.id)
+    expect(val).toMatchObject(vcclone)
+
+    chan = vcclone
+    done()
+  })
+
+  it('GunStorageProxy getVChannels', (done: any) => {
+    db.getVChannels(led.id, (lc: any) => {
+      expect(lc).toMatchObject(chan)
+      done()
+    })
+  })
+
+  it('GunStorageProxy getAllVChannels', (done: any) => {
+    db.getAllVChannels((lc: any) => {
+      expect(lc).toMatchObject(chan)
+      done()
+    })
+  })
+
+  it('GunStorageProxy del vchannel', async (done: any) => {
+    await db.delVChannel(chan.id)
+    done()
+  })
+
+  it('GunStorageProxy check if chan deleted by getVChannel', async (done: any) => {
+    const val = await db.getVChannel(chan.id)
+    expect(val).toBeNull()
+    done()
+  })
+
+  it('GunStorageProxy check if chan deleted by getVChannels', (done: any) => {
+    let id = -1
+    let len = 0
+    db.getVChannels(led.id, (c: any) => {
+      if (!c) return
+      id = c.id
+      len++
+    })
+    setTimeout(() => {
+      expect(id).not.toBe(chan.id)
+      expect(len).toBe(0)
+      done()
+    }, 300)
+  })
+
+  // =============
+
   it('GunStorageProxy del LC', async (done: any) => {
-    await db.delLC(y.id)
+    await db.delLC(led.id)
     done()
   })
 
   it('GunStorageProxy check if LC deleted by getLC', async (done: any) => {
-    const val = await db.getLC(y.id)
+    const val = await db.getLC(led.id)
     expect(val).toBeNull()
     done()
   })

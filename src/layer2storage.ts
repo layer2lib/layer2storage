@@ -41,7 +41,7 @@ export interface VCState extends State {
   lcId: string
   balanceA: BigNumber
   balanceB: BigNumber
-  appState?: StrObject // challenger?: address;
+  appState: StrObject | null // challenger?: address;
 }
 
 /*
@@ -73,7 +73,7 @@ export function makeVCState(
   lcId: string,
   balanceA: BigNumber,
   balanceB: BigNumber,
-  appState?: StrObject
+  appState: StrObject | null = null
 ): VCState {
   return { id, nonce, party, counterparty, sig, lcId, balanceA, balanceB, appState }
 }
@@ -92,13 +92,15 @@ export interface L2Database {
   storeVChannel(data: VCState): Promise<VCState>
   delVChannel(chan: VCID): Promise<void>
   // replace if same nonce
-  updateVChannel(chan: VCID, data: VCState): Promise<VCState>
+  updateVChannel(data: VCState): Promise<VCState>
   getVChannel(ledger: VCID): Promise<VCState> // latest by nonce
-  getAllVChannels(ledger?: LCID): Promise<VCState[]> // latest by nonce
+  getVChannels(ledger: LCID, cb: (lc: VCState) => void): Promise<void> // latest by nonce
+  getAllVChannels(cb: (lc: VCState) => void): Promise<void>
 }
 
 type Gun = any
-
+const LC_VCHANNELS_KEY = 'vchannels'
+const VC_LEDGER_KEY = 'ledger'
 export class GunStorageProxy implements L2Database {
   private dbKeys: { [key: string]: boolean } = {}
   private prefix: string = ''
@@ -106,6 +108,9 @@ export class GunStorageProxy implements L2Database {
 
   private _lcs: any
   private _lc: any
+
+  private _vc: any
+  private _vcs: any
   constructor(gun: Gun, prefix: string = 'layer2') {
     // super()
     if (!gun) throw new Error('Redis instance missing from constructor')
@@ -114,6 +119,9 @@ export class GunStorageProxy implements L2Database {
 
     this._lcs = this._db.get('ledgers')
     this._lc = this._db.get('ledger')
+
+    this._vcs = this._db.get('vchannel')
+    this._vc = this._db.get('vchannels')
   }
   logdriver() {
     // Log out current engine
@@ -124,6 +132,12 @@ export class GunStorageProxy implements L2Database {
   }
   private _ledgerByID(ledgerID: string) {
     return this._lc.get(ledgerID)
+  }
+  private _ledgerByIDChansKey(ledgerID: string) {
+    return this._ledgerByID(ledgerID).get('vchannels')
+  }
+  private _vchanByID(ledgerID: string) {
+    return this._vc.get(ledgerID)
   }
   /*private get _lcs() {
     return this._db.get('ledgers')
@@ -155,11 +169,13 @@ export class GunStorageProxy implements L2Database {
   async updateLC(data: LCState): Promise<LCState> {
     if (!data.id) throw new Error('no id given')
     // optimize away?
-    const stored = !!this.getLC(data.id)
+    const lc = this._ledgerByID(data.id)
+    const stored = !!(await lc.once())
     if (!stored) throw new Error('ledger id was not stored previously')
 
-    return this._ledgerByID(data.id)
+    return lc
       .put(data)
+      .once()
       .then((sdata: LCState) => sdata)
   }
   // latest by nonce
@@ -206,21 +222,84 @@ export class GunStorageProxy implements L2Database {
   }
 
   async storeVChannel(data: VCState): Promise<VCState> {
-    return Promise.resolve(data)
+    if (!data.id) throw new Error('no id given')
+    if (!data.lcId) throw new Error('no lcId given')
+    const id = data.id
+    const lcId = data.lcId
+
+    if (!data.appState) data.appState = null //fixes bug
+
+    const lc = this._ledgerByID(lcId)
+    if (!(await lc.once())) throw new Error('no ledger matching ' + lcId)
+
+    // create VC in db and put it in the set
+    const vc = this._vchanByID(id).put(data)
+
+    await vc.once() // TODO may not be needed
+
+    await this._vcs.set(vc)
+    // link ledger to channel
+    await vc.get(VC_LEDGER_KEY).put(lc)
+    // add channel to ledger
+    await lc.get(LC_VCHANNELS_KEY).set(vc)
+
+    return vc
   }
-  async delVChannel(chan: VCID): Promise<void> {
-    return Promise.resolve()
+  async delVChannel(id: VCID): Promise<void> {
+    if (!id) throw new Error('no id given')
+    if (!!(<any>id).id) throw new Error('object was given instead of id')
+
+    const vc = this._vchanByID(id)
+    const vcc = await vc.once()
+    if (!vcc) throw new Error('vc ' + id + ' does not exist to delete')
+    await this._vcs.unset(vc)
+
+    console.log('delVChannel', vcc, !!vcc.ledger)
+    //if (vcc.ledger) {
+    await vc
+      .get(VC_LEDGER_KEY)
+      .get(LC_VCHANNELS_KEY)
+      .unset(vc)
+    //}
+
+    return vc.put(null)
   }
   // replace if same nonce
-  async updateVChannel(chan: VCID, data: VCState): Promise<VCState> {
-    return Promise.resolve(data)
+  async updateVChannel(data: VCState): Promise<VCState> {
+    const id = data.id
+    if (!id) throw new Error('no channel id given')
+    // optimize away?
+    const lc = this._vchanByID(id)
+    const stored = !!(await lc.once())
+    if (!stored) throw new Error('vchan id was not stored previously')
+
+    return lc
+      .put(data)
+      .once()
+      .then((sdata: VCState) => sdata)
   }
   // latest by nonce
-  async getVChannel(ledger: VCID): Promise<VCState> {
-    return Promise.resolve({} as VCState)
+  async getVChannel(id: VCID): Promise<VCState> {
+    if (!id) throw new Error('no id given')
+    return this._vchanByID(id).once()
+    // return Promise.resolve({} as VCState)
   }
   // latest by nonce
-  async getAllVChannels(ledger?: LCID): Promise<VCState[]> {
-    return Promise.resolve([] as VCState[])
+  async getVChannels(ledger: LCID, cb: (lc: VCState) => void): Promise<void> {
+    const lc = this._ledgerByID(ledger)
+    if (!(await lc.once())) throw new Error('no ledger matching ' + ledger)
+    return lc
+      .get(LC_VCHANNELS_KEY)
+      .once()
+      .map()
+      .once(cb)
+    // return Promise.resolve([] as VCState[])
+  }
+  async getAllVChannels(cb: (lc: VCState) => void): Promise<void> {
+    return this._vcs
+      .once()
+      .map()
+      .once(cb)
+    // return Promise.resolve([] as VCState[])
   }
 }
