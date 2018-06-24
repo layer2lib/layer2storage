@@ -41,7 +41,7 @@ describe('Dummy test', () => {
     const val = await db.getLC(lclone.id)
     expect(val).toMatchObject(lclone)
 
-    led = val
+    led = lclone
 
     const mockCallback = jest.fn()
     let called = false
@@ -57,6 +57,17 @@ describe('Dummy test', () => {
       expect(mockCallback.mock.calls[0][0]).toMatchObject(lclone)
       done()
     }, 200)*/
+  })
+
+  it('GunStorageProxy updateLC', async (done: any) => {
+    const val = await db.getLC(led.id)
+    val.party = 'new party'
+    await db.updateLC(val)
+
+    const uval = await db.getLC(led.id)
+    expect(uval).not.toMatchObject(led)
+    expect(uval).toMatchObject(val)
+    done()
   })
 
   // ===== channels test
@@ -96,6 +107,17 @@ describe('Dummy test', () => {
       expect(c).toMatchObject(chan)
       done()
     })
+  })
+
+  it('GunStorageProxy updateVChannel', async (done: any) => {
+    const val = await db.getVChannel(chan.id)
+    val.party = 'new party'
+    await db.updateVChannel(val)
+
+    const uval = await db.getVChannel(chan.id)
+    expect(uval).not.toMatchObject(chan)
+    expect(uval).toMatchObject(val)
+    done()
   })
 
   it('GunStorageProxy del vchannel', async (done: any) => {
