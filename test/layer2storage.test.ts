@@ -8,6 +8,7 @@ require('gun/lib/open.js')
 /**
  * Dummy test
  */
+jest.setTimeout(1000)
 describe('Dummy test', () => {
   let db: GunStorageProxy = null
   let led: any
@@ -31,6 +32,7 @@ describe('Dummy test', () => {
   })
 
   it('GunStorageProxy storeLC getLC getLCs', async (done: any) => {
+    // expect.assertions(3)
     const l: LCState = makeLCState('id1', 'nonce1', 'party', 'cparty', 'sig', 'root', '12', '5')
     const lclone = clone(l)
 
@@ -41,16 +43,20 @@ describe('Dummy test', () => {
 
     led = val
 
-    const lcs = await db.getLCs()
-
-    expect(lcs.length).toEqual(1)
-    expect(lcs[0]).toMatchObject(lclone)
-
-    db.getLCsMap((lc: any) => {
+    const mockCallback = jest.fn()
+    let called = false
+    db.getLCsMap(lc => {
+      expect(called).toBe(false)
+      called = true
       expect(lc).toMatchObject(lclone)
       done()
     })
-    //expect(new DummyClass()).toBeInstanceOf(DummyClass)
+
+    /*setTimeout(() => {
+      expect(mockCallback.mock.calls.length).toBe(1)
+      expect(mockCallback.mock.calls[0][0]).toMatchObject(lclone)
+      done()
+    }, 200)*/
   })
 
   // ===== channels test
@@ -85,14 +91,12 @@ describe('Dummy test', () => {
     })
   })
 
-  /*
   it('GunStorageProxy getAllVChannels', (done: any) => {
     db.getAllVChannels((c: any) => {
       expect(c).toMatchObject(chan)
       done()
     })
   })
-  */
 
   it('GunStorageProxy del vchannel', async (done: any) => {
     await db.delVChannel(chan.id)
@@ -116,7 +120,7 @@ describe('Dummy test', () => {
       expect(id).not.toBe(chan.id)
       expect(len).toBe(0)
       done()
-    }, 300)
+    }, 100)
   })
 
   // =============
@@ -132,10 +136,18 @@ describe('Dummy test', () => {
     done()
   })
 
-  it('GunStorageProxy check if LC deleted by getLCs', async (done: any) => {
-    const lcs = await db.getLCs()
+  it('GunStorageProxy check if LC deleted by getLCsMap', async (done: any) => {
+    const mockCallback = jest.fn()
+    db.getLCsMap(mockCallback)
+
+    setTimeout(() => {
+      expect(mockCallback.mock.calls.length).toBe(0)
+      done()
+    }, 100)
+
+    /*const lcs = await db.getLCs()
     expect(lcs.length).toEqual(0)
-    done()
+    done()*/
   })
 })
 

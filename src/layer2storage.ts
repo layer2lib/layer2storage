@@ -118,11 +118,11 @@ export class GunStorageProxy implements L2Database {
     this.gun = gun
     this.prefix = prefix
 
-    this._lcs = this._db.get('ledgers')
     this._lc = this._db.get('ledger')
+    this._lcs = this._db.get('ledgers')
 
-    this._vcs = this._db.get('vchannel')
-    this._vc = this._db.get('vchannels')
+    this._vc = this._db.get('vchannel')
+    this._vcs = this._db.get('vchannels')
   }
   logdriver() {
     // Log out current engine
@@ -134,11 +134,8 @@ export class GunStorageProxy implements L2Database {
   private _ledgerByID(ledgerID: string) {
     return this._lc.get(ledgerID)
   }
-  private _ledgerByIDChansKey(ledgerID: string) {
-    return this._ledgerByID(ledgerID).get('vchannels')
-  }
-  private _vchanByID(ledgerID: string) {
-    return this._vc.get(ledgerID)
+  private _vchanByID(chan: string) {
+    return this._vc.get(chan)
   }
   /*private get _lcs() {
     return this._db.get('ledgers')
@@ -201,7 +198,7 @@ export class GunStorageProxy implements L2Database {
         if (!!x) lcs.push(x)
       })
 
-    return timeout(1000).then((x: any) => lcs)
+    return timeout(850).then((x: any) => lcs)
   }
 
   getLCsMap(cb: (lc: LCState) => void): void {
@@ -244,6 +241,14 @@ export class GunStorageProxy implements L2Database {
     await vc.get(VC_LEDGER_KEY).put(lc)
     // add channel to ledger
     await lc.get(LC_VCHANNELS_KEY).set(vc)
+
+    // FOR TESTING TODO: REMOVE
+    /*await lc
+      .get(LC_VCHANNELS_KEY)
+      .map()
+      .once((x: any) => {
+        console.log(x)
+      })*/
 
     return vc
   }
