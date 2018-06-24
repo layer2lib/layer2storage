@@ -54,6 +54,7 @@ describe('Dummy test', () => {
   })
 
   // ===== channels test
+  // TODO: UPDATE STATE
 
   it('GunStorageProxy storeVChannel getVChannel', async (done: any) => {
     const vc: VCState = makeVCState(
@@ -77,19 +78,21 @@ describe('Dummy test', () => {
     done()
   })
 
-  it('GunStorageProxy getVChannels', (done: any) => {
-    db.getVChannels(led.id, (lc: any) => {
-      expect(lc).toMatchObject(chan)
+  it('GunStorageProxy getVChannels', async (done: any) => {
+    db.getVChannels(led.id, (c: any) => {
+      expect(c).toMatchObject(chan)
       done()
     })
   })
 
+  /*
   it('GunStorageProxy getAllVChannels', (done: any) => {
-    db.getAllVChannels((lc: any) => {
-      expect(lc).toMatchObject(chan)
+    db.getAllVChannels((c: any) => {
+      expect(c).toMatchObject(chan)
       done()
     })
   })
+  */
 
   it('GunStorageProxy del vchannel', async (done: any) => {
     await db.delVChannel(chan.id)
@@ -106,7 +109,6 @@ describe('Dummy test', () => {
     let id = -1
     let len = 0
     db.getVChannels(led.id, (c: any) => {
-      if (!c) return
       id = c.id
       len++
     })

@@ -87,6 +87,7 @@ export interface L2Database {
   updateLC(data: LCState): Promise<LCState> // replace if same nonce
   getLC(ledgerID: LCID): Promise<LCState> // latest by nonce
   getLCs(): Promise<LCState[]> // latest by nonce
+  getLCsMap(cb: (lc: LCState) => void): void // TODO replace above
   delLC(id: LCID): Promise<void>
 
   storeVChannel(data: VCState): Promise<VCState>
@@ -160,7 +161,8 @@ export class GunStorageProxy implements L2Database {
     if (!data.id) throw new Error('no id given')
     const l = this._ledgerByID(data.id).put(data)
     //.then((sdata: LCState) => sdata)
-    const c = await this._lcs.set(l)
+    //const c =
+    await this._lcs.set(l)
     // console.log('c', c)
     return await l
     // return Promise.resolve(data)
@@ -287,19 +289,25 @@ export class GunStorageProxy implements L2Database {
   // latest by nonce
   async getVChannels(ledger: LCID, cb: (lc: VCState) => void): Promise<void> {
     const lc = this._ledgerByID(ledger)
-    if (!(await lc.once())) throw new Error('no ledger matching ' + ledger)
+    if (!(await lc)) throw new Error('no ledger matching ' + ledger)
     return lc
       .get(LC_VCHANNELS_KEY)
       .once()
       .map()
-      .once(cb)
+      .once((x: any) => {
+        console.log('xxxxxxxxxxxx', x)
+        if (!!x) cb(x)
+      })
+
     // return Promise.resolve([] as VCState[])
   }
   async getAllVChannels(cb: (lc: VCState) => void): Promise<void> {
     return this._vcs
-      .once()
+      .once() // bug
       .map()
-      .once(cb)
+      .once((x: any) => {
+        if (!!x) cb(x)
+      })
     // return Promise.resolve([] as VCState[])
   }
 }
