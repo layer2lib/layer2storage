@@ -221,10 +221,10 @@ export class GunStorageProxy implements L2Database {
   }
 
   async storeVChannel(data: VCState): Promise<VCState> {
-    if (!data.id) throw new Error('no id given')
-    if (!data.lcId) throw new Error('no lcId given')
     const id = data.id
     const lcId = data.lcId
+    if (!id) throw new Error('no id given')
+    if (!lcId) throw new Error('no lcId given')
 
     if (!data.appState) data.appState = null //fixes bug
 
@@ -234,7 +234,7 @@ export class GunStorageProxy implements L2Database {
     // create VC in db and put it in the set
     const vc = this._vchanByID(id).put(data)
 
-    await vc.once() // TODO may not be needed
+    // await vc.once() // TODO may not be needed
 
     await this._vcs.set(vc)
     // link ledger to channel
@@ -298,21 +298,25 @@ export class GunStorageProxy implements L2Database {
     return lc
       .get(LC_VCHANNELS_KEY)
       .once()
-      .map()
-      .once((x: any) => {
-        console.log('xxxxxxxxxxxx', x)
+      .map((x: any) => {
+        //console.log('xxxxxxxxxxxx', x)
         if (!!x) cb(x)
+        return x
       })
+      .once()
 
     // return Promise.resolve([] as VCState[])
   }
   async getAllVChannels(cb: (lc: VCState) => void): Promise<void> {
     return this._vcs
       .once() // bug
-      .map()
-      .once((x: any) => {
+      .map((x: any) => {
+        //console.log('yyyyyyyyyy', x)
         if (!!x) cb(x)
+        return x
       })
+      .once()
+
     // return Promise.resolve([] as VCState[])
   }
 }
