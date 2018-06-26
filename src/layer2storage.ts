@@ -293,7 +293,7 @@ export class GunStorageProxy implements L2Database {
     // return Promise.resolve({} as VCState)
   }
   // latest by nonce
-  async getVChannels(ledger: LCID, cb: (lc: VCState) => void): void {
+  getVChannels(ledger: LCID, cb: (lc: VCState) => void): void {
     const lc = this._ledgerByID(ledger)
     //if (!(await lc)) throw new Error('no ledger matching ' + ledger)
     return lc
@@ -307,7 +307,7 @@ export class GunStorageProxy implements L2Database {
 
     // return Promise.resolve([] as VCState[])
   }
-  async getAllVChannels(cb: (lc: VCState) => void): void {
+  getAllVChannels(cb: (lc: VCState) => void): void {
     return this._vcs
       .once() // bug
       .map()
