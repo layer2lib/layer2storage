@@ -167,7 +167,7 @@ describe('Dummy test', () => {
     done()
   })
 
-  test('GunStorageProxy check if LC deleted by getLCsMap', async (done: any) => {
+  test('GunStorageProxy check if LC deleted by getLCs', async (done: any) => {
     const mockCallback = jest.fn()
     db.getLCs(mockCallback)
 
