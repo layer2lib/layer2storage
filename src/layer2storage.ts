@@ -114,7 +114,7 @@ export class GunStorageProxy implements L2Database {
   private _vcs: any
   constructor(gun: Gun, prefix: string = 'layer2') {
     // super()
-    if (!gun) throw new Error('Redis instance missing from constructor')
+    if (!gun) throw new Error('Gun instance missing from constructor')
     this.gun = gun
     this.prefix = prefix
 
