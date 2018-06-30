@@ -50,36 +50,6 @@ interface PaymentState extends LCState {
   balance: string
 }
 */
-/*
-export function makeLCState(
-  id: string,
-  isClosed: boolean,
-  nonce: string,
-  openVCs: number = 0,
-  party: Address,
-  counterparty: Address,
-  vcRootHash: string,
-  balanceA: BigNumber,
-  balanceB: BigNumber,
-  sig: string
-): LCState {
-  return { id, nonce, party, counterparty, sig, openVCs, vcRootHash, balanceA, balanceB, isClosed }
-}*/
-
-export function makeVCState(
-  id: string,
-  nonce: string,
-  party: Address,
-  counterparty: Address,
-  sig: string,
-  lcId: string,
-  balanceA: BigNumber,
-  balanceB: BigNumber,
-  appState: StrObject | null = null
-): VCState {
-  return { id, nonce, party, counterparty, sig, lcId, balanceA, balanceB, appState }
-}
-
 export interface L2Database {
   logdriver(): void
   set(k: string, v: any): void // for misc data
