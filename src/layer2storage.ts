@@ -21,6 +21,7 @@ export interface State {
   nonce: string
   party: Address
   counterparty: Address
+  stateHash: string
   sig: string
   sig_counterpary?: string
 }
