@@ -61,8 +61,9 @@ describe('Dummy test', () => {
 
     const lclone = clone(led)
 
-    await db.storeLC(lclone)
-    //console.log('stored', )
+    const r = await db.storeLC(lclone)
+    expect(r).toMatchObject(led)
+
     const val = await db.getLC(lclone.id)
     expect(val).toMatchObject(led)
 
@@ -99,7 +100,8 @@ describe('Dummy test', () => {
   test('GunStorageProxy storeVChannel getVChannel', async (done: any) => {
     const vcclone = clone(chan)
 
-    await db.storeVChannel(vcclone)
+    const v = await db.storeVChannel(vcclone)
+    expect(v).toMatchObject(chan)
 
     const val = await db.getVChannel(chan.id)
     expect(val).toMatchObject(chan)
