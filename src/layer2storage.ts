@@ -17,8 +17,8 @@ interface PartyKey {
 
 export interface State {
   id: string
+  isClosed: boolean
   nonce: string
-  isClosed?: boolean
   party: Address
   counterparty: Address
   sig: string
@@ -52,14 +52,15 @@ interface PaymentState extends LCState {
 */
 export function makeLCState(
   id: string,
+  isClosed: boolean,
   nonce: string,
+  openVCs: number = 0,
   party: Address,
   counterparty: Address,
-  sig: string,
   vcRootHash: string,
   balanceA: BigNumber,
   balanceB: BigNumber,
-  openVCs: number = 0
+  sig: string
 ): LCState {
   return { id, nonce, party, counterparty, sig, openVCs, vcRootHash, balanceA, balanceB }
 }
