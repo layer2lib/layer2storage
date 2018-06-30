@@ -11,17 +11,30 @@ require('gun/lib/open.js')
 jest.setTimeout(1000)
 describe('Dummy test', () => {
   let db: GunStorageProxy = null
-  const led: LCState = makeLCState('id1', 'nonce1', 'party', 'cparty', 'sig', 'root', '12', '5')
-  const chan: VCState = makeVCState(
-    'vcid1',
-    'nonce',
-    'partyA',
-    'counterp',
-    'sig',
-    led.id,
-    'bala',
-    'balb'
-  )
+  const led: LCState = {
+    id: 'id',
+    nonce: '1',
+    party: '1',
+    counterparty: 'cp1',
+    sig: 'sig',
+    openVCs: null,
+    vcRootHash: null,
+    balanceA: '1',
+    balanceB: '2',
+    isClosed: false
+  }
+  const chan: VCState = {
+    id: 'id2',
+    nonce: 'n',
+    party: '123',
+    counterparty: 'cp123',
+    sig: '123',
+    lcId: led.id,
+    balanceA: '123',
+    balanceB: '222',
+    isClosed: false,
+    appState: null
+  }
 
   //let led: any
   //let chan: any
@@ -51,14 +64,14 @@ describe('Dummy test', () => {
     await db.storeLC(lclone)
     //console.log('stored', )
     const val = await db.getLC(lclone.id)
-    expect(val).toMatchObject(lclone)
+    expect(val).toMatchObject(led)
 
     const mockCallback = jest.fn()
     let called = false
     db.getLCs(lc => {
       expect(called).toBe(false)
       called = true
-      expect(lc).toMatchObject(lclone)
+      expect(lc).toMatchObject(led)
       done()
     })
 

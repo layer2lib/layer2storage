@@ -50,6 +50,7 @@ interface PaymentState extends LCState {
   balance: string
 }
 */
+/*
 export function makeLCState(
   id: string,
   isClosed: boolean,
@@ -62,8 +63,8 @@ export function makeLCState(
   balanceB: BigNumber,
   sig: string
 ): LCState {
-  return { id, nonce, party, counterparty, sig, openVCs, vcRootHash, balanceA, balanceB }
-}
+  return { id, nonce, party, counterparty, sig, openVCs, vcRootHash, balanceA, balanceB, isClosed }
+}*/
 
 export function makeVCState(
   id: string,
