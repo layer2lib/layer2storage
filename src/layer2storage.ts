@@ -191,6 +191,8 @@ export class GunStorageProxy implements L2Database {
     const stored = await lc.not()
     if (!stored) throw new Error('ledger id was not stored previously')
 
+    if (stored.nonce > data.nonce) return data
+
     pack(data)
 
     return lc
