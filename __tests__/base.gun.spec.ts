@@ -8,12 +8,20 @@ import Gun from 'gun'
 jest.setTimeout(1000)
 describe('Dummy test', () => {
   let db: GunStorageProxy = null
+  const sigCase = {
+    message: '123',
+    messageHash: '1',
+    v: '2',
+    r: '3',
+    s: '4',
+    signature: '5'
+  }
   const led: LCState = {
     id: 'id',
     nonce: '1',
     party: '1',
     counterparty: 'cp1',
-    sig: null as Sig,
+    sig: sigCase,
     openVCs: null,
     vcRootHash: null,
     balanceA: '1',
@@ -29,7 +37,7 @@ describe('Dummy test', () => {
     nonce: 'n',
     party: '123',
     counterparty: 'cp123',
-    sig: null as Sig,
+    sig: sigCase,
     lcId: led.id,
     balanceA: '123',
     balanceB: '222',

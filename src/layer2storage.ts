@@ -39,6 +39,27 @@ export interface State {
   sig: Sig
   sig_counterpary?: Sig
 }
+
+// stringify subobjects
+const complexKeys = ['sig', 'sig_counterpary']
+function unpack(o: any): any {
+  if (!o) return o
+  complexKeys.forEach((k: string) => {
+    if (o[k] && isString(o[k])) o[k] = JSON.parse(o[k])
+  })
+  return o
+}
+function pack(o: any): any {
+  if (!o) return o
+  complexKeys.forEach((k: string) => {
+    if (o[k] && !isString(o[k])) o[k] = JSON.stringify(o[k])
+  })
+  return o
+}
+function isString(x: any): boolean {
+  return Object.prototype.toString.call(x) === '[object String]'
+}
+// =====
 /*
 interface Balances {
   balanceA: BigNumber
@@ -149,6 +170,7 @@ export class GunStorageProxy implements L2Database {
   async storeLC(data: LCState): Promise<LCState> {
     if (!data.id) throw new Error('no id given')
 
+    pack(data)
     // only save the latest nonce
     //const old = await this._ledgerByID(data.id).once()
     //if (!!old && old.nonce > data.nonce) return Promise.resolve(data)
@@ -158,27 +180,30 @@ export class GunStorageProxy implements L2Database {
     //const c =
     await this._lcs.set(l)
     // console.log('c', c)
-    return await l
+    return await l.then(unpack)
     // return Promise.resolve(data)
   }
   // replace if same nonce
   async updateLC(data: LCState): Promise<LCState> {
     if (!data.id) throw new Error('no id given')
     // optimize away?
-    console.log('data.id', data.id)
     const lc = this._ledgerByID(data.id)
     const stored = await lc.not()
     if (!stored) throw new Error('ledger id was not stored previously')
 
+    pack(data)
+
     return lc
       .put(data)
       .once()
-      .then((sdata: LCState) => sdata)
+      .then(unpack)
   }
   // latest by nonce
   async getLC(ledgerID: LCID): Promise<LCState> {
     if (!ledgerID) throw new Error('no id given')
-    return this._ledgerByID(ledgerID).load()
+    return this._ledgerByID(ledgerID)
+      .load()
+      .then(unpack)
   }
 
   // latest by nonce
@@ -207,6 +232,7 @@ export class GunStorageProxy implements L2Database {
       .once()
       .map()
       .once((x: any) => {
+        unpack(x)
         if (!!x) cb(x)
       })
   }
@@ -236,6 +262,8 @@ export class GunStorageProxy implements L2Database {
     //const old = await this._vchanByID(id).once()
     //if (old && old.nonce > data.nonce) return Promise.resolve(data)
 
+    pack(data)
+
     // create VC in db and put it in the set
     const vc = this._vchanByID(id).put(data)
 
@@ -255,7 +283,7 @@ export class GunStorageProxy implements L2Database {
         console.log(x)
       })*/
 
-    return vc
+    return vc.then(unpack)
   }
   async delVChannel(id: VCID): Promise<void> {
     if (!id) throw new Error('no id given')
@@ -285,15 +313,19 @@ export class GunStorageProxy implements L2Database {
     const stored = !!(await lc.not())
     if (!stored) throw new Error('vchan id was not stored previously')
 
+    pack(data)
+
     return lc
       .put(data)
       .once()
-      .then((sdata: VCState) => sdata)
+      .then(unpack)
   }
   // latest by nonce
   async getVChannel(id: VCID): Promise<VCState> {
     if (!id) throw new Error('no id given')
-    return this._vchanByID(id).load()
+    return this._vchanByID(id)
+      .once() // .load
+      .then(unpack)
     // return Promise.resolve({} as VCState)
   }
   // latest by nonce
@@ -305,7 +337,7 @@ export class GunStorageProxy implements L2Database {
       .once()
       .map()
       .once((x: any) => {
-        if (x) cb(x)
+        if (x) cb(unpack(x))
         return x
       })
 
@@ -316,7 +348,7 @@ export class GunStorageProxy implements L2Database {
       .once() // bug
       .map()
       .once((x: any) => {
-        if (x) cb(x)
+        if (x) cb(unpack(x))
         return x
       })
   }
@@ -349,11 +381,11 @@ async function _listify(gunkey: any): Promise<any[]> {
   const p = new Promise<any[]>((resolve, rejected) => {
     listPromise.map().once((x: LCState, index: string) => {
       if (!listVal[index]) {
-        console.log('discarding new entry')
+        console.log('warning: discarding new entry')
         return
       }
       count++
-      if (!!x) total.push(x)
+      if (!!x) total.push(unpack(x))
       if (count == len) resolve(total)
     })
   })
