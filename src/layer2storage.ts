@@ -37,11 +37,11 @@ export interface State {
   counterparty: Address
   stateHash: string
   sig: Sig
-  sig_counterpary?: Sig
+  sig_counterparty?: Sig
 }
 
 // stringify subobjects
-const complexKeys = ['sig', 'sig_counterpary']
+const complexKeys = ['sig', 'sig_counterparty']
 function unpack(o: any): any {
   if (!o) return o
   complexKeys.forEach((k: string) => {
