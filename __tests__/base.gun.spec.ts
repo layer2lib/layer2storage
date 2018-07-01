@@ -23,6 +23,9 @@ describe('Dummy test', () => {
     balanceB: '2',
     isClosed: false
   }
+  const led2 = clone(led)
+  led2.id = 'id1234'
+
   const chan: VCState = {
     id: 'id2',
     nonce: 'n',
@@ -57,23 +60,29 @@ describe('Dummy test', () => {
   })
 
   test('GunStorageProxy storeLC getLC getLCs', async (done: any) => {
-    // expect.assertions(3)
+    expect.assertions(4)
 
     const lclone = clone(led)
+    const lclone2 = clone(led2)
 
     const r = await db.storeLC(lclone)
+    await db.storeLC(lclone2)
+
     expect(r).toMatchObject(led)
 
     const val = await db.getLC(lclone.id)
     expect(val).toMatchObject(led)
 
     const mockCallback = jest.fn()
-    let called = false
+    let called = 0
     db.getLCs(lc => {
-      expect(called).toBe(false)
-      called = true
-      expect(lc).toMatchObject(led)
-      done()
+      called++
+      //expect(called).toBe(2)
+      if (called == 1) expect(lc).toMatchObject(led)
+      if (called == 2) {
+        expect(lc).toMatchObject(led2)
+        done()
+      }
     })
 
     /*setTimeout(() => {
@@ -81,6 +90,14 @@ describe('Dummy test', () => {
       expect(mockCallback.mock.calls[0][0]).toMatchObject(lclone)
       done()
     }, 200)*/
+  })
+
+  test('GunStorageProxy getLCsList', async (done: any) => {
+    const r = await db.getLCsList()
+    expect(r).toHaveLength(2)
+    expect(r[0]).toMatchObject(led)
+    expect(r[1]).toMatchObject(led2)
+    done()
   })
 
   test('GunStorageProxy updateLC', async (done: any) => {
@@ -135,6 +152,18 @@ describe('Dummy test', () => {
     })
   })
 
+  test('GunStorageProxy getVChannelsList getAllVChannelsList', async (done: any) => {
+    const chanList = await db.getVChannelsList(led.id)
+    expect(chanList).toHaveLength(1)
+    expect(chanList[0]).toMatchObject(chan)
+
+    const allList = await db.getAllVChannelsList()
+    expect(allList).toHaveLength(1)
+    expect(allList[0]).toMatchObject(chan)
+
+    done()
+  })
+
   test('GunStorageProxy updateVChannel', async (done: any) => {
     const val = await db.getVChannel(chan.id)
     expect(val).toMatchObject(chan)
@@ -173,6 +202,7 @@ describe('Dummy test', () => {
 
   test('GunStorageProxy del LC', async (done: any) => {
     await db.delLC(led.id)
+    await db.delLC(led2.id)
     done()
   })
 
