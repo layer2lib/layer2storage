@@ -1,3 +1,8 @@
+require('gun/lib/then.js')
+require('gun/lib/unset.js')
+require('gun/lib/open.js')
+require('gun/lib/load.js')
+require('gun/lib/not.js')
 // Import here Polyfills if needed. Recommended core-js (npm i -D core-js)
 // import "core-js/fn/array.find"
 // ...
@@ -15,6 +20,15 @@ interface PartyKey {
 }
 */
 
+export interface Sig {
+  message: string
+  messageHash: string
+  v: string
+  r: string
+  s: string
+  signature: string
+}
+
 export interface State {
   id: string
   isClosed: boolean
@@ -22,8 +36,8 @@ export interface State {
   party: Address
   counterparty: Address
   stateHash: string
-  sig: string
-  sig_counterpary?: string
+  sig: Sig
+  sig_counterpary?: Sig
 }
 /*
 interface Balances {
@@ -151,8 +165,9 @@ export class GunStorageProxy implements L2Database {
   async updateLC(data: LCState): Promise<LCState> {
     if (!data.id) throw new Error('no id given')
     // optimize away?
+    console.log('data.id', data.id)
     const lc = this._ledgerByID(data.id)
-    const stored = !!(await lc.once())
+    const stored = await lc.not()
     if (!stored) throw new Error('ledger id was not stored previously')
 
     return lc
@@ -163,7 +178,7 @@ export class GunStorageProxy implements L2Database {
   // latest by nonce
   async getLC(ledgerID: LCID): Promise<LCState> {
     if (!ledgerID) throw new Error('no id given')
-    return this._ledgerByID(ledgerID).once()
+    return this._ledgerByID(ledgerID).load()
   }
 
   // latest by nonce
@@ -215,7 +230,7 @@ export class GunStorageProxy implements L2Database {
     if (!data.appState) data.appState = null //fixes bug
 
     const lc = this._ledgerByID(lcId)
-    if (!(await lc.once())) throw new Error('no ledger matching ' + lcId)
+    if (!(await lc.not())) throw new Error('no ledger matching ' + lcId)
 
     // only save the latest nonce
     //const old = await this._vchanByID(id).once()
@@ -247,8 +262,8 @@ export class GunStorageProxy implements L2Database {
     if (!!(<any>id).id) throw new Error('object was given instead of id')
 
     const vc = this._vchanByID(id)
-    const vcc = await vc.once()
-    if (!vcc) throw new Error('vc ' + id + ' does not exist to delete')
+    //const vcc = await vc.not()
+    //if (!vcc) throw new Error('vc ' + id + ' does not exist to delete')
     await this._vcs.unset(vc)
 
     // console.log('delVChannel', vcc, !!vcc.ledger)
@@ -267,7 +282,7 @@ export class GunStorageProxy implements L2Database {
     if (!id) throw new Error('no channel id given')
     // optimize away?
     const lc = this._vchanByID(id)
-    const stored = !!(await lc.once())
+    const stored = !!(await lc.not())
     if (!stored) throw new Error('vchan id was not stored previously')
 
     return lc
@@ -278,7 +293,7 @@ export class GunStorageProxy implements L2Database {
   // latest by nonce
   async getVChannel(id: VCID): Promise<VCState> {
     if (!id) throw new Error('no id given')
-    return this._vchanByID(id).once()
+    return this._vchanByID(id).load()
     // return Promise.resolve({} as VCState)
   }
   // latest by nonce

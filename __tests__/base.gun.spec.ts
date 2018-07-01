@@ -1,10 +1,7 @@
-import { GunStorageProxy, makeLCState, LCState, VCState, makeVCState } from '../src/layer2storage'
+import { GunStorageProxy, LCState, VCState, Sig } from '../src/layer2storage'
 process.env.GUN_ENV = 'false'
 import Gun from 'gun'
-require('gun/lib/then.js')
-require('gun/lib/unset.js')
-require('gun/lib/open.js')
-//require('gun/lib/not.js')
+
 /**
  * Dummy test
  */
@@ -16,12 +13,13 @@ describe('Dummy test', () => {
     nonce: '1',
     party: '1',
     counterparty: 'cp1',
-    sig: 'sig',
+    sig: null as Sig,
     openVCs: null,
     vcRootHash: null,
     balanceA: '1',
     balanceB: '2',
-    isClosed: false
+    isClosed: false,
+    stateHash: '0x0'
   }
   const led2 = clone(led)
   led2.id = 'id1234'
@@ -31,12 +29,13 @@ describe('Dummy test', () => {
     nonce: 'n',
     party: '123',
     counterparty: 'cp123',
-    sig: '123',
+    sig: null as Sig,
     lcId: led.id,
     balanceA: '123',
     balanceB: '222',
     isClosed: false,
-    appState: null
+    appState: null,
+    stateHash: '0x0'
   }
 
   //let led: any
@@ -111,6 +110,16 @@ describe('Dummy test', () => {
     done()
   })
 
+  test('GunStorageProxy updateLC throw', async (done: any) => {
+    const c = clone(led)
+    c.id = 'badid'
+    try {
+      await db.updateLC(c)
+    } catch (e) {
+      done()
+    }
+  })
+
   // ===== channels test
   // TODO: UPDATE STATE
 
@@ -130,6 +139,17 @@ describe('Dummy test', () => {
     */
 
     done()
+  })
+
+  test('GunStorageProxy storeVChannel throw', async (done: any) => {
+    const vcclone = clone(chan)
+    vcclone.lcId = 'badid'
+
+    try {
+      await db.storeVChannel(vcclone)
+    } catch (e) {
+      done()
+    }
   })
 
   test('GunStorageProxy getVChannels', async (done: any) => {
@@ -174,6 +194,16 @@ describe('Dummy test', () => {
     expect(uval).not.toMatchObject(chan)
     expect(uval).toMatchObject(val)
     done()
+  })
+
+  test('GunStorageProxy updateVChannel throw', async (done: any) => {
+    const c = clone(chan)
+    c.id = 'badid'
+    try {
+      await db.updateVChannel(c)
+    } catch (e) {
+      done()
+    }
   })
 
   test('GunStorageProxy del vchannel', async (done: any) => {
