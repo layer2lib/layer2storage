@@ -202,7 +202,7 @@ export class GunStorageProxy implements L2Database {
   async getLC(ledgerID: LCID): Promise<LCState> {
     if (!ledgerID) throw new Error('no id given')
     return this._ledgerByID(ledgerID)
-      .load()
+      .once() // .load()
       .then(unpack)
   }
 
