@@ -171,9 +171,6 @@ export class GunStorageProxy implements L2Database {
     if (!data.id) throw new Error('no id given')
 
     pack(data)
-    // only save the latest nonce
-    //const old = await this._ledgerByID(data.id).once()
-    //if (!!old && old.nonce > data.nonce) return Promise.resolve(data)
 
     const l = this._ledgerByID(data.id).put(data)
     //.then((sdata: LCState) => sdata)
@@ -312,8 +309,10 @@ export class GunStorageProxy implements L2Database {
     if (!id) throw new Error('no channel id given')
     // optimize away?
     const lc = this._vchanByID(id)
-    const stored = !!(await lc.not())
+    const stored = await lc.not()
     if (!stored) throw new Error('vchan id was not stored previously')
+
+    if (stored.nonce > data.nonce) return data
 
     pack(data)
 
