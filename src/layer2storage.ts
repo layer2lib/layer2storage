@@ -129,62 +129,36 @@ export class GunStorageProxy implements L2Database {
     // super()
     if (!gun) throw new Error('Gun instance missing from constructor')
     this.gun = gun
-    this.prefix = prefix
-
-    this._lc = this._db.get('ledger')
-    this._lcs = this._db.get('ledgers')
-
-    this._vc = this._db.get('vchannel')
-    this._vcs = this._db.get('vchannels')
   }
   logdriver() {
     // Log out current engine
     console.log('js-layer2lib using gun driver')
   }
-  private get _db() {
-    return this.gun.get(this.prefix)
-  }
-  private _ledgerByID(ledgerID: string) {
-    return this._lc.get(ledgerID)
-  }
-  private _vchanByID(chan: string) {
-    return this._vc.get(chan)
-  }
-  /*private get _lcs() {
-    return this._db.get('ledgers')
-  }*/
-  async set(k: string, v: StrObject) {
-    if (!k) throw new Error('key cannot be null or empty')
-    if (!v) throw new Error('value cannot be null or empty')
-    // wthis.dbKeys[k] = true
-    await this._db.get(k).put(v)
-  }
-  async get(k: string) {
-    let res = await this._db.get(k).once()
-    return res
-  }
+
+
   async keys() {
     return Object.keys(this.dbKeys)
   }
 
-  async storeLC(data: LCState): Promise<LCState> {
+  async storeLC(data: LCState, ledgerID: LCID): Promise<LCState> {
     if (!data.id) throw new Error('no id given')
 
     pack(data)
 
-    const l = this._ledgerByID(data.id).put(data)
-    //.then((sdata: LCState) => sdata)
-    //const c =
-    await this._lcs.set(l)
-    // console.log('c', c)
+    const lcState = this._db.get(data.id).put(data)
+
+    const lcPointerSet = this._db.get(LCID)
+    await this.lcPointerSet.set(lcState)
+    const _highestSequence = this._lcs.get('highestSequence')
+    if(_highestSequence === undefined) { _highestSequence = 0 }
+    if(data.nonce > _highestSequence) { this._lcs.set({highestSequence: _highestSequence})}
     return await l.then(unpack)
-    // return Promise.resolve(data)
   }
   // replace if same nonce
   async updateLC(data: LCState): Promise<LCState> {
     if (!data.id) throw new Error('no id given')
     // optimize away?
-    const lc = this._ledgerByID(data.id)
+    const lc = this._db.get(data.id)
     const stored = await lc.not()
     if (!stored) throw new Error('ledger id was not stored previously')
 
@@ -198,125 +172,76 @@ export class GunStorageProxy implements L2Database {
       .then(unpack)
   }
   // latest by nonce
-  async getLC(ledgerID: LCID): Promise<LCState> {
+  async getLCbyID(ledgerID: LCID): Promise<LCState> {
     if (!ledgerID) throw new Error('no id given')
-    return this._ledgerByID(ledgerID)
+    const _highestSequence = this._db.get(LCID).get('highestSequence')
+    return this._db.get(LCID).get(_highestSequence)
       .once() // .load()
       .then(unpack)
   }
 
-  // latest by nonce
-  /*
-  async getLCs(): Promise<LCState[]> {
-    // going to hell for this but it must be done like this (for now)..
-    // .. must use timeout to aggregate the collection until
-    // .. gun supports length tracked lists
-    // TODO: store a length param as a seperate key with some atomic-like
-    const timeout = (ms: number) => new Promise(res => setTimeout(res, ms))
-    let lcs: LCState[] = []
-    this._lcs
+  async getLCbySequence(ledgerID: LCID, seq: number): Promise<LCState> {
+    if (!ledgerID) throw new Error('no id given')
+    return this._db.get(LCID).get(number)
+      .once() // .load()
+      .then(unpack)
+  }
+
+  getLCs(ledgerID: LCID): Promise<LCState> {
+    this._db.get(LCID).
       .once()
       .map()
-      .once((x: any) => {
-        // console.log('x', x)
-        if (!!x) lcs.push(x)
-      })
-
-    return timeout(850).then((x: any) => lcs)
-  }
-  */
-
-  getLCs(cb: (lc: LCState) => void): void {
-    this._lcs
-      .once()
-      .map()
-      .once((x: any) => {
-        unpack(x)
-        if (!!x) cb(x)
-      })
+      .val()
   }
 
-  async delLC(id: LCID): Promise<void> {
-    if (!id) throw new Error('no id given')
-    if (!!(<any>id).id) throw new Error('object was given instead of id')
+  // This needs to be better defined
 
-    const l = this._ledgerByID(id).once()
-    if (!l) throw new Error('lenger ' + id + ' does not exist to delete')
-    await this._lcs.unset(l)
-    return l.put(null)
-  }
+  // async delLC(id: LCID): Promise<void> {
+  //   if (!id) throw new Error('no id given')
+  //   if (!!(<any>id).id) throw new Error('object was given instead of id')
 
-  async storeVChannel(data: VCState): Promise<VCState> {
+  //   const l = this._ledgerByID(id).once()
+  //   if (!l) throw new Error('lenger ' + id + ' does not exist to delete')
+  //   await this._lcs.unset(l)
+  //   return l.put(null)
+  // }
+
+  async storeVChannel(data: VCState, ledgerID: VCID): Promise<VCState> {
     const id = data.id
     const lcId = data.lcId
     if (!id) throw new Error('no id given')
     if (!lcId) throw new Error('no lcId given')
 
-    if (!data.appState) data.appState = null //fixes bug
+    const vcState = this._db.get(id).put(data)
 
-    const lc = this._ledgerByID(lcId)
-    if (!(await lc.not())) throw new Error('no ledger matching ' + lcId)
-
-    // only save the latest nonce
-    //const old = await this._vchanByID(id).once()
-    //if (old && old.nonce > data.nonce) return Promise.resolve(data)
-
-    pack(data)
-
-    // create VC in db and put it in the set
-    const vc = this._vchanByID(id).put(data)
-
-    // await vc.once() // TODO may not be needed
-
-    await this._vcs.set(vc)
-    // link ledger to channel
-    await vc.get(VC_LEDGER_KEY).put(lc)
-    // add channel to ledger
-    await lc.get(LC_VCHANNELS_KEY).set(vc)
-
-    // FOR TESTING TODO: REMOVE
-    /*await lc
-      .get(LC_VCHANNELS_KEY)
-      .map()
-      .once((x: any) => {
-        console.log(x)
-      })*/
+    const vcPointerSet = this._db.get(VCID)
+    await this.vcPointerSet.set(vcState)
 
     return vc.then(unpack)
   }
+
   async delVChannel(id: VCID): Promise<void> {
     if (!id) throw new Error('no id given')
     if (!!(<any>id).id) throw new Error('object was given instead of id')
 
-    const vc = this._vchanByID(id)
-    //const vcc = await vc.not()
-    //if (!vcc) throw new Error('vc ' + id + ' does not exist to delete')
-    await this._vcs.unset(vc)
 
-    // console.log('delVChannel', vcc, !!vcc.ledger)
-    //if (vcc.ledger) {
-    await vc
-      .get(VC_LEDGER_KEY)
-      .get(LC_VCHANNELS_KEY)
-      .unset(vc)
-    //}
-
-    return vc.put(null)
+    // this removes the pointer node, todo: map through and remove each vc state then the pointer node
+    await this._db.unset(id)
+    return
   }
   // replace if same nonce
   async updateVChannel(data: VCState): Promise<VCState> {
-    const id = data.id
-    if (!id) throw new Error('no channel id given')
+    if (!data.id) throw new Error('no id given')
     // optimize away?
-    const lc = this._vchanByID(id)
-    const stored = await lc.not()
-    if (!stored) throw new Error('vchan id was not stored previously')
+    const vc = this._db.get(data.id)
+    const stored = await vc.not()
+    if (!stored) throw new Error('ledger id was not stored previously')
 
     if (stored.nonce > data.nonce) return data
 
     pack(data)
 
-    return lc
+    return vc
       .put(data)
       .once()
       .then(unpack)
@@ -324,10 +249,10 @@ export class GunStorageProxy implements L2Database {
   // latest by nonce
   async getVChannel(id: VCID): Promise<VCState> {
     if (!id) throw new Error('no id given')
-    return this._vchanByID(id)
-      .once() // .load
+    const _highestSequence = this._db.get(id).get('highestSequence')
+    return this._db.get(id).get(_highestSequence)
+      .once() // .load()
       .then(unpack)
-    // return Promise.resolve({} as VCState)
   }
   // latest by nonce
   getVChannels(ledger: LCID, cb: (lc: VCState) => void): void {
@@ -344,66 +269,12 @@ export class GunStorageProxy implements L2Database {
 
     // return Promise.resolve([] as VCState[])
   }
-  getAllVChannels(cb: (lc: VCState) => void): void {
-    return this._vcs
-      .once() // bug
-      .map()
-      .once((x: any) => {
-        if (x) cb(unpack(x))
-        return x
-      })
-  }
-
-  async getLCsList(): Promise<LCState[]> {
-    const listPromise = this._lcs.once()
-    return _listify(listPromise)
-  }
-
-  async getVChannelsList(ledger: LCID): Promise<VCState[]> {
-    const listPromise = this._ledgerByID(ledger)
-      .get(LC_VCHANNELS_KEY)
+  getVCs(ledgerID: VCID): Promise<LCState> {
+    this._db.get(VCID).
       .once()
-    return _listify(listPromise)
+      .map()
+      .val()
   }
 
-  async getAllVChannelsList(): Promise<VCState[]> {
-    const listPromise = this._vcs.once()
-    return _listify(listPromise)
-  }
-}
 
-async function _listify(gunkey: any): Promise<any[]> {
-  const listPromise = gunkey.once()
-  const listVal = await listPromise
-  const len = Object.keys(listVal).length - 1
-  // console.log('len', a, len)
-  let count = 0
-  const total: any[] = []
-  const p = new Promise<any[]>((resolve, rejected) => {
-    listPromise.map().once((x: LCState, index: string) => {
-      if (!listVal[index]) {
-        console.log('warning: discarding new entry')
-        return
-      }
-      count++
-      if (!!x) total.push(unpack(x))
-      if (count == len) resolve(total)
-    })
-  })
-  return p
 }
-/*
-(x: any) => {
-        //console.log('yyyyyyyyyy', x)
-        if (!!x) cb(x)
-        return x
-      }
-      */
-
-/*
-      .map((x: any) => {
-        //console.log('xxxxxxxxxxxx', x)
-        if (!!x) cb(x)
-        return x
-      })
-      */
