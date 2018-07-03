@@ -125,8 +125,8 @@ describe('Dummy test', () => {
     done()
   })
 
-  test('GunStorageProxy updateVChannel getVChannelStateCount', async (done: any) => {
-    const nonce = await db.getLCStateCount(chan.id)
+  test('GunStorageProxy getLCStateCount', async (done: any) => {
+    const nonce = await db.getLCStateCount(led.id)
     expect(nonce).toEqual(0)
     done()
   })
@@ -151,6 +151,26 @@ describe('Dummy test', () => {
     } catch (e) {
       done()
     }
+  })
+
+  test('GunStorageProxy post-lc-update getLCbyNonce 0, 1', async (done: any) => {
+    const pos = await db.getLCbyNonce(led.id, chan.nonce)
+    expect(pos).toMatchObject(led)
+
+    const val2 = clone(led)
+    val2.isClosed = true
+    val2.nonce = led.nonce + 1
+
+    const pos2 = await db.getLCbyNonce(led.id, chan.nonce + 1)
+    expect(pos2).toMatchObject(val2)
+
+    done()
+  })
+
+  test('GunStorageProxy post-lc-update getLCStateCount', async (done: any) => {
+    const nonce = await db.getLCStateCount(led.id)
+    expect(nonce).toEqual(chan.nonce + 1)
+    done()
   })
 
   test('GunStorageProxy getVChannelElder', async (done: any) => {
