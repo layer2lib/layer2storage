@@ -1,22 +1,24 @@
 module.exports = {
-  transform: {
-    "^.+\\.(ts|tsx)$": "ts-jest"
+  "rootDir": "./",
+  "transform": {
+    "^.+\\.tsx?$": "ts-jest"
   },
-  "globals": {
+  /*"globals": {
     "ts-jest": {
       "tsConfigFile": "tsconfig.json"
     }
-  },
+  },*/
   "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
-  testPathIgnorePatterns: ["/lib/", "/node_modules/"],
-  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
+  "testPathIgnorePatterns": ["/lib/", "/node_modules/"],
+  "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
   "coverageThreshold": {
     "global": {
-      "branches": 80,
+      "branches": 50,
       "functions": 90,
-      "lines": 90,
-      "statements": 90
+      "lines": 80,
+      "statements": 80
     }
   },
-  collectCoverage: true
+  "bail": true,
+  "collectCoverage": true
 };
