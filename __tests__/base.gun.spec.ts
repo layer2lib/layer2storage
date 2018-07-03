@@ -132,9 +132,9 @@ describe('Dummy test', () => {
   })
 
   test('GunStorageProxy updateLC', async (done: any) => {
-    const val = await db.getLC(led.id)
-    val.party = 'new party'
-    val.nonce = 1
+    const val = clone(led) // await db.getLC(led.id)
+    val.isClosed = true
+    val.nonce = led.nonce + 1
     await db.updateLC(val)
 
     const uval = await db.getLC(led.id)
@@ -151,6 +151,17 @@ describe('Dummy test', () => {
     } catch (e) {
       done()
     }
+  })
+
+  test('GunStorageProxy getVChannelElder', async (done: any) => {
+    const val = clone(led)
+    val.isClosed = true
+    val.nonce = led.nonce + 1
+
+    const uval = await db.getLCElder(led.id)
+    expect(uval).not.toMatchObject(val)
+    expect(uval).toMatchObject(led)
+    done()
   })
 
   // ===== channels test
@@ -245,7 +256,7 @@ describe('Dummy test', () => {
     //const val = await db.getVChannel(chan.id)
     //expect(val).toMatchObject(chan)
     const val = clone(chan)
-    val.party = 'new party'
+    val.isClosed = true
     val.nonce = chan.nonce + 1
     await db.updateVChannel(val)
 
@@ -259,7 +270,7 @@ describe('Dummy test', () => {
     //const val = await db.getVChannel(chan.id)
     //expect(val).toMatchObject(chan)
     const val = clone(chan)
-    val.party = 'new party'
+    val.isClosed = true
     val.nonce = chan.nonce + 1
 
     const uval = await db.getVChannelElder(chan.id)
@@ -270,7 +281,7 @@ describe('Dummy test', () => {
 
   test('GunStorageProxy updateVChannel getVChannelStateCount', async (done: any) => {
     const nonce = await db.getVChannelStateCount(chan.id)
-    console.log('nonce', nonce)
+
     expect(nonce).toEqual(chan.nonce + 1)
     done()
   })

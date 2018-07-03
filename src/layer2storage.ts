@@ -100,8 +100,8 @@ export interface L2Database {
   storeLC(data: LCState): Promise<LCState>
   updateLC(data: LCState): Promise<LCState> // replace if same nonce
   getLC(ledgerID: LCID): Promise<LCState> // latest by nonce
-  // getLCbySequence(ledgerID: LCID, seq: number): Promise<LCState>
-  //getLCs(): Promise<LCState[]> // latest by nonce
+  getLCElder(id: VCID): Promise<VCState | null>
+
   getLCbyNonce(id: LCID, seq: number): Promise<VCState | null>
   getLCs(cb: (lc: LCState) => void): void // TODO replace above
   getLCsList(): Promise<LCState[]>
@@ -121,7 +121,6 @@ export interface L2Database {
   getAllVChannels(cb: (lc: VCState) => void): void
   getAllVChannelsList(): Promise<VCState[]>
 
-  // getLCStateCount(id:string):Promise<number>
   getVChannelStateCount(id: string): Promise<number>
   getLCStateCount(id: string): Promise<number>
 }
@@ -251,8 +250,8 @@ export class GunStorageProxy implements L2Database {
     if (!data.id) throw new Error('no id given')
     // optimize away?
     const node = this._ledgerByID(data.id)
-    const oldHead = await node.get(NODE_HEAD).not()
-    if (!oldHead) throw new Error('ledger id was not stored previously')
+    const oldHead = node.get(NODE_HEAD)
+    if (!(await oldHead.not())) throw new Error('ledger id was not stored previously')
 
     if (oldHead.nonce > data.nonce) return data
 
@@ -266,6 +265,8 @@ export class GunStorageProxy implements L2Database {
       .get(data.nonce)
       .put(data)
 
+    await node.get(NODE_HEAD).put(newVC)
+
     return newVC.once().then(unpack)
   }
   // latest by nonce
@@ -273,6 +274,14 @@ export class GunStorageProxy implements L2Database {
     if (!ledgerID) throw new Error('no id given')
     return this._ledgerByID(ledgerID)
       .path(NODE_HEAD)
+      .not() // .load()
+      .then(unpack)
+  }
+
+  async getLCElder(ledgerID: VCID): Promise<VCState | null> {
+    if (!ledgerID) throw new Error('no id given')
+    return this._ledgerByID(ledgerID)
+      .path(NODE_HEAD_PREV)
       .not() // .load()
       .then(unpack)
   }
