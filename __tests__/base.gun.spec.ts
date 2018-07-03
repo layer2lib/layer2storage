@@ -32,6 +32,7 @@ describe('Dummy test', () => {
   }
   const led2 = clone(led)
   led2.id = 'id1234'
+  led2.nonce = 1
 
   const chan: VCState = {
     id: 'id2',
@@ -117,9 +118,23 @@ describe('Dummy test', () => {
     done()
   })
 
+  test('GunStorageProxy getLCbyNonce 0', async (done: any) => {
+    const val = await db.getLCbyNonce(led.id, chan.nonce)
+    expect(val).toMatchObject(led)
+
+    done()
+  })
+
+  test('GunStorageProxy updateVChannel getVChannelStateCount', async (done: any) => {
+    const nonce = await db.getLCStateCount(chan.id)
+    expect(nonce).toEqual(0)
+    done()
+  })
+
   test('GunStorageProxy updateLC', async (done: any) => {
     const val = await db.getLC(led.id)
     val.party = 'new party'
+    val.nonce = 1
     await db.updateLC(val)
 
     const uval = await db.getLC(led.id)
@@ -205,10 +220,10 @@ describe('Dummy test', () => {
   })
 
   test('GunStorageProxy getVChannelsList', async (done: any) => {
-    const chanList = await db.getVChannelsList(led.id)
-    expect(chanList).toHaveLength(1)
-    expect(chanList[0]).toMatchObject(chan)
-
+    const list = await db.getVChannelsList(led.id)
+    // console.log(list, typeof list, list.length)
+    expect(list).toHaveLength(1)
+    expect(list[0]).toMatchObject(chan)
     done()
   })
 
@@ -222,7 +237,6 @@ describe('Dummy test', () => {
 
   test('GunStorageProxy getVChannelStateCount', async (done: any) => {
     const nonce = await db.getVChannelStateCount(chan.id)
-    console.log('nonce', nonce)
     expect(nonce).toEqual(chan.nonce)
     done()
   })
@@ -287,14 +301,14 @@ describe('Dummy test', () => {
     done()
   })
 
-  test('GunStorageProxy check if chan deleted by getVChannel', async (done: any) => {
+  test('GunStorageProxy post-vc-delete getVChannel', async (done: any) => {
     const val = await db.getVChannel(chan.id)
     expect(val).toBeNull()
     done()
   })
 
   // TODO: could take out this check in favor of list
-  /*test('GunStorageProxy check if chan deleted by getVChannels', async (done: any) => {
+  /*test('GunStorageProxy post-vc-delete getVChannels', async (done: any) => {
     let len = 0
     db.getVChannels(led.id, (c: any) => {
       len++
@@ -305,9 +319,9 @@ describe('Dummy test', () => {
     }, 200)
   })*/
 
-  test('GunStorageProxy check if chan deleted by getVChannelsList', async (done: any) => {
+  test('GunStorageProxy post-vc-delete getVChannelsList', async (done: any) => {
     const list = await db.getVChannelsList(led.id)
-    // console.log(list, typeof list)
+    // console.log(list, typeof list, list.length)
     expect(list).toHaveLength(0)
     done()
   })
@@ -320,13 +334,13 @@ describe('Dummy test', () => {
     done()
   })
 
-  test('GunStorageProxy check if LC deleted by getLC', async (done: any) => {
+  test('GunStorageProxy post-lc-delete getLC', async (done: any) => {
     const val = await db.getLC(led.id)
     expect(val).toBeNull()
     done()
   })
 
-  test('GunStorageProxy check if LC deleted by getLCs', async (done: any) => {
+  test('GunStorageProxy post-lc-delete getLCs', async (done: any) => {
     const mockCallback = jest.fn()
     db.getLCs(mockCallback)
 

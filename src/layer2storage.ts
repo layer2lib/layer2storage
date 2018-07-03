@@ -45,16 +45,18 @@ export interface State {
 // stringify subobjects
 const complexKeys = ['sig', 'sig_counterparty']
 function unpack(o: any): any {
-  if (!o) return o
+  if (!o) return null
   complexKeys.forEach((k: string) => {
     if (o[k] && isString(o[k])) o[k] = JSON.parse(o[k])
   })
+
+  delete o['_'] // remove gundb meta data
   return o
 }
 function pack(o: any): any {
   if (!o) return o
   o = clone(o)
-  delete (o as any)['_'] // prevent recycled nodes
+  delete (o as any)['_'] // prevent recycled gun nodes
   complexKeys.forEach((k: string) => {
     if (o[k] && !isString(o[k])) o[k] = JSON.stringify(o[k])
   })
@@ -100,6 +102,7 @@ export interface L2Database {
   getLC(ledgerID: LCID): Promise<LCState> // latest by nonce
   // getLCbySequence(ledgerID: LCID, seq: number): Promise<LCState>
   //getLCs(): Promise<LCState[]> // latest by nonce
+  getLCbyNonce(id: LCID, seq: number): Promise<VCState | null>
   getLCs(cb: (lc: LCState) => void): void // TODO replace above
   getLCsList(): Promise<LCState[]>
 
@@ -120,6 +123,7 @@ export interface L2Database {
 
   // getLCStateCount(id:string):Promise<number>
   getVChannelStateCount(id: string): Promise<number>
+  getLCStateCount(id: string): Promise<number>
 }
 
 //==============================
@@ -128,6 +132,7 @@ interface Node<T> {
   prevHead: T | null
   tail: T | null
   ledger: any | null
+  // vchannels: any[] | null, // todo: not sure if saving a list like this works
   table: { [key: string]: T }
 }
 
@@ -191,6 +196,44 @@ export class GunStorageProxy implements L2Database {
   }
 
   async storeLC(data: LCState): Promise<LCState> {
+    const id = data.id
+    if (!id) throw new Error('no id given')
+
+    let node = this._ledgerByID(id)
+    if (!!(await node.not())) throw new Error('ledger already exists ' + id)
+
+    data = pack(data)
+
+    const nodeObj: Node<LCState> = {
+      head: null,
+      prevHead: null,
+      ledger: null,
+      tail: null, // will set below
+      table: { [data.nonce]: data } // dont populate yet
+    }
+
+    node = node.put(nodeObj)
+
+    // update the vc table
+    const lc = node.get(NODE_TABLE).get(data.nonce)
+
+    // create VC in db and put it in the set
+    await node.get(NODE_HEAD).put(lc)
+
+    // update the vc tail
+    await node.get(NODE_TAIL).put(lc)
+
+    // not in Node type yet, list of VCs
+    await node.get(LC_VCHANNELS_KEY).set(null)
+
+    // not needed but this is the spirit
+    // lc.get('next').put(null)
+    await this._lcs.set(node)
+
+    return lc.then(unpack)
+  }
+
+  /*async storeLC2(data: LCState): Promise<LCState> {
     if (!data.id) throw new Error('no id given')
 
     data = pack(data)
@@ -202,29 +245,42 @@ export class GunStorageProxy implements L2Database {
     // console.log('c', c)
     return await l.then(unpack)
     // return Promise.resolve(data)
-  }
+  }*/
   // replace if same nonce
   async updateLC(data: LCState): Promise<LCState> {
     if (!data.id) throw new Error('no id given')
     // optimize away?
-    const lc = this._ledgerByID(data.id)
-    const stored = await lc.not()
-    if (!stored) throw new Error('ledger id was not stored previously')
+    const node = this._ledgerByID(data.id)
+    const oldHead = await node.get(NODE_HEAD).not()
+    if (!oldHead) throw new Error('ledger id was not stored previously')
 
-    if (stored.nonce > data.nonce) return data
+    if (oldHead.nonce > data.nonce) return data
 
     data = pack(data)
 
-    return lc
+    await node.get(NODE_HEAD_PREV).put(oldHead)
+
+    // update hash table
+    const newVC = node
+      .get(NODE_TABLE)
+      .get(data.nonce)
       .put(data)
-      .once()
-      .then(unpack)
+
+    return newVC.once().then(unpack)
   }
   // latest by nonce
   async getLC(ledgerID: LCID): Promise<LCState> {
     if (!ledgerID) throw new Error('no id given')
     return this._ledgerByID(ledgerID)
-      .once() // .load()
+      .path(NODE_HEAD)
+      .not() // .load()
+      .then(unpack)
+  }
+
+  async getLCbyNonce(id: LCID, seq: number): Promise<VCState | null> {
+    return this._ledgerByID(id)
+      .path([NODE_TABLE, seq])
+      .not()
       .then(unpack)
   }
 
@@ -240,6 +296,7 @@ export class GunStorageProxy implements L2Database {
     this._lcs
       .once()
       .map()
+      .path(NODE_HEAD)
       .once((x: any) => {
         unpack(x)
         if (!!x) cb(x)
@@ -264,8 +321,8 @@ export class GunStorageProxy implements L2Database {
 
     if (!data.appState) data.appState = null //fixes bug
 
-    const lc = this._ledgerByID(lcId)
-    if (!(await lc.not())) throw new Error('no ledger matching ' + lcId)
+    const lcNode = this._ledgerByID(lcId)
+    if (!(await lcNode.not())) throw new Error('no ledger matching ' + lcId)
 
     // only save the latest nonce
     //const old = await this._vchanByID(id).once()
@@ -297,15 +354,16 @@ export class GunStorageProxy implements L2Database {
 
     ////await this._vcs.set(vc)
     // link ledger to channel
-    await node.get(VC_LEDGER_KEY).put(lc)
+    await node.get(VC_LEDGER_KEY).put(lcNode)
     // add channel to ledger
-    await lc.get(LC_VCHANNELS_KEY).set(node)
+    await lcNode.get(LC_VCHANNELS_KEY).set(node)
 
     // not needed but this is the spirit
-    lc.get('next').put(null)
+    lcNode.get('next').put(null)
 
     return vc.then(unpack)
   }
+
   async delVChannel(id: VCID): Promise<void> {
     if (!id) throw new Error('no id given')
     if (!!(<any>id).id) throw new Error('object was given instead of id')
@@ -474,6 +532,11 @@ export class GunStorageProxy implements L2Database {
       })*/
   }
 
+  async getLCStateCount(id: string): Promise<number> {
+    const vc = await this.getLC(id)
+    return !vc ? 0 : vc!.nonce
+  }
+
   async getVChannelStateCount(id: string): Promise<number> {
     const vc = await this.getVChannel(id)
     return !vc ? 0 : vc!.nonce
@@ -481,7 +544,7 @@ export class GunStorageProxy implements L2Database {
 
   async getLCsList(): Promise<LCState[]> {
     const listPromise = this._lcs.once()
-    return _listify(listPromise, false)
+    return _listify(listPromise)
   }
 
   async getVChannelsList(ledger: LCID): Promise<VCState[]> {
@@ -495,7 +558,7 @@ export class GunStorageProxy implements L2Database {
     const listPromise = this._lcs
       .once()
       .map()
-      .path(LC_VCHANNELS_KEY) // + '.' + NODE_HEAD)
+      .path(LC_VCHANNELS_KEY)
     return _listify(listPromise)
   }
 }
@@ -511,34 +574,31 @@ export class GunStorageProxy implements L2Database {
 async function _listify(gunkey: any, getHead: boolean = true): Promise<any[]> {
   const listPromise = gunkey // do not call .once here
   const listVal = await listPromise
-  delete listVal['_']
+  delete listVal['_'] // remove gundb key first, before reading key length
   // get all keys with values
   const len = Object.keys(listVal).filter((k: any) => !!listVal[k]).length
 
   if (len === 0) return Promise.resolve([])
-  // console.log('len', a, len)
   let count = 0
   const total: any[] = []
-  //if (getHead) console.log('len', len, listVal)
-  // look for the head, otherwise do nothing
-  const p = new Promise<any[]>((resolve, rejected) => {
+
+  return new Promise<any[]>((resolve, rejected) => {
     let m: any = listPromise.map()
+
+    // if getHead, seek to use the HEAD key
     if (getHead) m = m.path(NODE_HEAD)
+
     m.once((x: LCState, index: string) => {
-      // TODO find a way to track keys
-      /*if (!listVal[index]) {
+      // TODO find a way to track keys, doesn't work with HEAD
+      if (!getHead && !listVal[index]) {
         console.log('warning: discarding new entry')
         return
-      }*/
+      }
       count++
       if (!!x) total.push(unpack(x))
       if (count == len) resolve(total)
     })
   })
-
-  // fix for key plucking
-  //const result:any = p.then((x:any) => Array.isArray(x) ? x : []);
-  return p
 }
 
 function clone(obj: any) {
