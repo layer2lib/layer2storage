@@ -54,7 +54,8 @@
     "singleQuote": true
   },
   "dependencies": {
-    "gun": "^0.9.9993"
+    "gun": "^0.9.9993",
+    "gun-synclist": "^1.0.2"
   },
   "devDependencies": {
     "@types/jest": "^23.1.3",
