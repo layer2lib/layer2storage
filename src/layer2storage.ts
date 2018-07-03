@@ -100,9 +100,9 @@ export interface L2Database {
   storeLC(data: LCState): Promise<LCState>
   updateLC(data: LCState): Promise<LCState> // replace if same nonce
   getLC(ledgerID: LCID): Promise<LCState> // latest by nonce
-  getLCElder(id: VCID): Promise<VCState | null>
+  getLCElder(id: LCID): Promise<LCState | null>
 
-  getLCbyNonce(id: LCID, seq: number): Promise<VCState | null>
+  getLCbyNonce(id: LCID, seq: number): Promise<LCState | null>
   getLCs(cb: (lc: LCState) => void): void // TODO replace above
   getLCsList(): Promise<LCState[]>
 
@@ -278,7 +278,7 @@ export class GunStorageProxy implements L2Database {
       .then(unpack)
   }
 
-  async getLCElder(ledgerID: VCID): Promise<VCState | null> {
+  async getLCElder(ledgerID: LCID): Promise<LCState | null> {
     if (!ledgerID) throw new Error('no id given')
     return this._ledgerByID(ledgerID)
       .path(NODE_HEAD_PREV)
@@ -286,7 +286,7 @@ export class GunStorageProxy implements L2Database {
       .then(unpack)
   }
 
-  async getLCbyNonce(id: LCID, seq: number): Promise<VCState | null> {
+  async getLCbyNonce(id: LCID, seq: number): Promise<LCState | null> {
     return this._ledgerByID(id)
       .path([NODE_TABLE, seq])
       .not()
