@@ -110,6 +110,7 @@ export interface L2Database {
   // replace if same nonce
   updateVChannel(data: VCState): Promise<VCState>
   getVChannel(id: VCID): Promise<VCState | null> // latest by nonce
+  getVChannelElder(id: VCID): Promise<VCState | null> // latest by nonce
   getVChannelbyNonce(id: VCID, seq: number): Promise<VCState | null>
 
   getVChannels(ledger: LCID, cb: (lc: VCState) => void): void // latest by nonce
@@ -385,6 +386,20 @@ export class GunStorageProxy implements L2Database {
       .not() // protection if its removed
       .then(unpack)
     // return Promise.resolve({} as VCState)
+  }
+
+  async getVChannelElder(id: VCID): Promise<VCState | null> {
+    if (!id) throw new Error('no id given')
+
+    // TODO: slow to double check if key exist
+    // required when key does not exist and hangs
+    const exists = await this._vchanByID(id).not()
+    if (!exists) return null
+
+    return this._vchanByID(id)
+      .get(NODE_HEAD_PREV) // get head node
+      .not() // protection if its removed
+      .then(unpack)
   }
 
   async getVChannelbyNonce(id: VCID, seq: number): Promise<VCState | null> {

@@ -241,6 +241,19 @@ describe('Dummy test', () => {
     done()
   })
 
+  test('GunStorageProxy getVChannelElder', async (done: any) => {
+    //const val = await db.getVChannel(chan.id)
+    //expect(val).toMatchObject(chan)
+    const val = clone(chan)
+    val.party = 'new party'
+    val.nonce = chan.nonce + 1
+
+    const uval = await db.getVChannelElder(chan.id)
+    expect(uval).not.toMatchObject(val)
+    expect(uval).toMatchObject(chan)
+    done()
+  })
+
   test('GunStorageProxy updateVChannel getVChannelStateCount', async (done: any) => {
     const nonce = await db.getVChannelStateCount(chan.id)
     console.log('nonce', nonce)
