@@ -55,7 +55,7 @@
     "singleQuote": true
   },
   "dependencies": {
-    "gun": "^0.9.9993",
+    "gun": "*",
     "gun-synclist": "^1.0.2"
   },
   "devDependencies": {

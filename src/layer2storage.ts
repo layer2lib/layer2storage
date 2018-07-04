@@ -1,3 +1,4 @@
+import 'gun'
 import 'gun/lib/then.js'
 import 'gun/lib/unset.js'
 import 'gun/lib/open.js'
