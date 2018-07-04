@@ -1,6 +1,12 @@
 import { GunStorageProxy, LCState, VCState, Sig } from '../src/layer2storage'
 process.env.GUN_ENV = 'false'
 import Gun from 'gun'
+require('gun/lib/then.js')
+require('gun/lib/unset.js')
+require('gun/lib/open.js')
+require('gun/lib/load.js')
+require('gun/lib/not.js')
+require('gun/lib/path.js')
 
 /**
  * Dummy test

@@ -1,11 +1,10 @@
-import 'gun'
-import 'gun/lib/then.js'
-import 'gun/lib/unset.js'
-import 'gun/lib/open.js'
-import 'gun/lib/load.js'
-import 'gun/lib/not.js'
-import 'gun/lib/path.js'
-import 'gun-synclist'
+require('gun/lib/then.js')
+require('gun/lib/unset.js')
+require('gun/lib/open.js')
+require('gun/lib/load.js')
+require('gun/lib/not.js')
+require('gun/lib/path.js')
+// import 'gun-synclist'
 // Import here Polyfills if needed. Recommended core-js (npm i -D core-js)
 // import "core-js/fn/array.find"
 // ...
