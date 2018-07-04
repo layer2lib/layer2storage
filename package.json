@@ -1,6 +1,6 @@
 {
   "name": "layer2storage",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "description": "",
   "keywords": [],
   "main": "dist/layer2storage.umd.js",
