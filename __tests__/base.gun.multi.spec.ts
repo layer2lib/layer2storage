@@ -126,7 +126,7 @@ describe('Dummy test', () => {
 
   test('GunStorageProxy storeLC alice/bob same id', async (done: any) => {
     const lclone = clone(led)
-    const lclone2 = clone(led2)
+    const lclone2 = clone(led)
     lclone.id = '123'
     lclone2.id = '123'
 
@@ -139,7 +139,7 @@ describe('Dummy test', () => {
   })
 
   test('GunStorageProxy multi updateLC', async (done: any) => {
-    const lclone2 = clone(led2)
+    const lclone2 = clone(led)
     lclone2.id = '123'
 
     const val = await db0.getLC('123')
@@ -155,6 +155,46 @@ describe('Dummy test', () => {
     const uval2 = await db1.getLC('123')
     expect(uval2).not.toMatchObject(val)
     expect(uval2).toMatchObject(lclone2)
+
+    await db0.delLC('123')
+    await db1.delLC('123')
+    done()
+  })
+
+  test('GunStorageProxy storeLC alice/bob same obj', async (done: any) => {
+    const lclone = clone(led)
+    lclone.id = '123'
+
+    const r = await db0.storeLC(lclone)
+    const r2 = await db1.storeLC(lclone)
+
+    expect(r).toMatchObject(lclone)
+    expect(r2).toMatchObject(lclone)
+
+    done()
+  })
+
+  test('GunStorageProxy multi updateLC same obj', async (done: any) => {
+    const lclone2 = clone(led)
+    lclone2.id = '123'
+
+    const val = await db0.getLC('123')
+    val.isClosed = true
+    val.nonce = val.nonce + 1
+    val.party = 'aaa'
+    await db0.updateLC(val)
+
+    const uval = await db0.getLC('123')
+    expect(uval).not.toMatchObject(lclone2)
+    expect(uval).toMatchObject(val)
+
+    // ensure bob's state hasn't changed
+    const uval2 = await db1.getLC('123')
+    expect(uval2).not.toMatchObject(val)
+    expect(uval2).toMatchObject(lclone2)
+
+    await db0.delLC('123')
+    await db1.delLC('123')
     done()
   })
 })
