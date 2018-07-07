@@ -1,9 +1,11 @@
+/*
 require('gun/lib/then.js')
 require('gun/lib/unset.js')
 require('gun/lib/open.js')
 require('gun/lib/load.js')
 require('gun/lib/not.js')
 require('gun/lib/path.js')
+*/
 // import 'gun-synclist'
 // Import here Polyfills if needed. Recommended core-js (npm i -D core-js)
 // import "core-js/fn/array.find"
@@ -162,11 +164,13 @@ export class GunStorageProxy implements L2Database {
     this._lcs = this._db.get('ledgers')
 
     this._vc = this._db.get('vchannel')
-    // this._vcs = this._db.get('vchannels')
   }
   logdriver() {
     // Log out current engine
     console.log('js-layer2lib using gun driver')
+  }
+  public get dbprefix() {
+    return this.prefix
   }
   private get _db() {
     return this.gun.get(this.prefix)
@@ -187,7 +191,10 @@ export class GunStorageProxy implements L2Database {
     await this._db.get(k).put(v)
   }
   async get(k: string) {
-    let res = await this._db.get(k).once()
+    let res = await this._db
+      .get(k)
+      .not()
+      .then((x: any) => x || null)
     return res
   }
   async keys() {
@@ -213,16 +220,16 @@ export class GunStorageProxy implements L2Database {
 
     node = node.put(nodeObj)
 
-    // update the vc table
+    // update the lc table
     const lc = node.get(NODE_TABLE).get(data.nonce)
 
-    // create VC in db and put it in the set
+    // create LC in db and put it in the set
     await node.get(NODE_HEAD).put(lc)
 
-    // update the vc tail
+    // update the lc tail
     await node.get(NODE_TAIL).put(lc)
 
-    // not in Node type yet, list of VCs
+    // not in Node type yet, list of LCs
     await node.get(LC_VCHANNELS_KEY).set(null)
 
     // not needed but this is the spirit

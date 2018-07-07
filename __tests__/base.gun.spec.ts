@@ -55,16 +55,14 @@ describe('Dummy test', () => {
     stateHash: '0x0'
   }
 
-  //let led: any
-  //let chan: any
-
   test('works if true is truthy', () => {
     expect(true).toBeTruthy()
   })
 
   test('GunStorageProxy is instantiable', () => {
-    const gun = new Gun({ radisk: false, localStorage: true })
-    db = new GunStorageProxy(gun)
+    const gun = new Gun({ localStorage: true, radisk: false, WebSocket: false })
+    db = new GunStorageProxy(gun, 'lauren')
+    expect(db.dbprefix).toEqual('lauren')
     //expect(new DummyClass()).toBeInstanceOf(DummyClass)
   })
 
@@ -75,18 +73,24 @@ describe('Dummy test', () => {
     //expect(new DummyClass()).toBeInstanceOf(DummyClass)
   })
 
+  test('GunStorageProxy check cleared local storage', async (done: any) => {
+    const noLC = await db.getLC(led.id)
+    expect(noLC).toBeNull()
+    done()
+  })
+
   test('GunStorageProxy storeLC', async (done: any) => {
     const lclone = clone(led)
     const lclone2 = clone(led2)
 
+    expect(lclone.id).toEqual('id')
+    expect(lclone2.id).toEqual('id1234')
+
     const r = await db.storeLC(lclone)
-    await db.storeLC(lclone2)
+    const r2 = await db.storeLC(lclone2)
 
     expect(r).toMatchObject(led)
-
-    const val = await db.getLC(lclone.id)
-    expect(val).toMatchObject(led)
-
+    expect(r2).toMatchObject(led2)
     done()
   })
 
