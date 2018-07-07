@@ -323,10 +323,10 @@ export class GunStorageProxy implements L2Database {
     if (!id) throw new Error('no id given')
     if (!!(<any>id).id) throw new Error('object was given instead of id')
 
-    const l = this._ledgerByID(id).once()
-    if (!l) throw new Error('lenger ' + id + ' does not exist to delete')
+    const l = this._ledgerByID(id)
+    if (!(await l.not())) throw new Error('lenger ' + id + ' does not exist to delete')
     await this._lcs.unset(l)
-    return l.put(null)
+    return l.put(null) //.once()
   }
 
   async storeVChannel(data: VCState): Promise<VCState> {

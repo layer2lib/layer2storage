@@ -62,7 +62,7 @@ describe('Dummy test', () => {
   })
 
   test('GunStorageProxy is multiple instantiable', () => {
-    const gun = new Gun({ localStorage: false, WebSocket: false })
+    const gun = new Gun({ localStorage: true, radisk: false, WebSocket: false })
     db0 = new GunStorageProxy(gun, 'alice')
     expect(db0.dbprefix).toEqual('alice')
 
@@ -100,18 +100,61 @@ describe('Dummy test', () => {
   test('GunStorageProxy storeLC alice', async (done: any) => {
     const lclone = clone(led)
     const lclone2 = clone(led2)
+    lclone2.id = 'bob1'
 
     const r = await db0.storeLC(lclone)
-    await db0.storeLC(lclone2)
+    const r2 = await db1.storeLC(lclone2)
 
     expect(r).toMatchObject(led)
+    expect(r2).toMatchObject(lclone2)
     done()
   })
 
-  test('GunStorageProxy getLC from bob should not alice', async (done: any) => {
+  test('GunStorageProxy getLC from bob should not see alice LC', async (done: any) => {
     const val2 = await db1.getLC(led.id)
     expect(val2).toBeNull()
 
+    // alice should not have bobs LC
+    const val3 = await db0.getLC('bob1')
+    expect(val3).toBeNull()
+
+    await db0.delLC(led.id)
+    await db1.delLC('bob1')
+
+    done()
+  })
+
+  test('GunStorageProxy storeLC alice/bob same id', async (done: any) => {
+    const lclone = clone(led)
+    const lclone2 = clone(led2)
+    lclone.id = '123'
+    lclone2.id = '123'
+
+    const r = await db0.storeLC(lclone)
+    const r2 = await db1.storeLC(lclone2)
+
+    expect(r).toMatchObject(lclone)
+    expect(r2).toMatchObject(lclone2)
+    done()
+  })
+
+  test('GunStorageProxy multi updateLC', async (done: any) => {
+    const lclone2 = clone(led2)
+    lclone2.id = '123'
+
+    const val = await db0.getLC('123')
+    val.isClosed = true
+    val.nonce = led.nonce + 1
+    await db0.updateLC(val)
+
+    const uval = await db0.getLC('123')
+    expect(uval).not.toMatchObject(lclone2)
+    expect(uval).toMatchObject(val)
+
+    // ensure bob's state hasn't changed
+    const uval2 = await db1.getLC('123')
+    expect(uval2).not.toMatchObject(val)
+    expect(uval2).toMatchObject(lclone2)
     done()
   })
 })
