@@ -138,6 +138,22 @@ describe('Dummy test', () => {
     done()
   })
 
+  test('GunStorageProxy storeLC alice/bob same id, different data', async (done: any) => {
+    const lclone = clone(led)
+    const lclone2 = clone(led)
+    lclone.id = '420'
+    lclone2.id = '420'
+
+    lclone2.nonce = 1337
+
+    const r = await db0.storeLC(lclone)
+    const r2 = await db1.storeLC(lclone2)
+
+    expect(r).toMatchObject(lclone)
+    expect(r2).toMatchObject(lclone2)
+    done()
+  })
+
   test('GunStorageProxy multi updateLC', async (done: any) => {
     const lclone2 = clone(led)
     lclone2.id = '123'
