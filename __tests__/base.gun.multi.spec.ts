@@ -134,7 +134,7 @@ describe('Dummy test', () => {
     const r2 = await db1.storeLC(lclone2)
 
     expect(r).toMatchObject(lclone)
-    expect(r2).toMatchObject(lclone2)
+    expect(r2).toMatchObject(lclone)
     done()
   })
 
@@ -149,8 +149,11 @@ describe('Dummy test', () => {
     const r = await db0.storeLC(lclone)
     const r2 = await db1.storeLC(lclone2)
 
-    expect(r).toMatchObject(lclone)
-    expect(r2).toMatchObject(lclone2)
+    const res1 = await db0.getLC(lclone.id)
+    const res2 = await db1.getLC(lclone2.id)
+
+    expect(res1).toMatchObject(lclone)
+    expect(res2).toMatchObject(lclone2)
     done()
   })
 
