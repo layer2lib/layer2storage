@@ -1,6 +1,5 @@
+import * as Gun from 'gun'
 import { GunStorageProxy, LCState, VCState, Sig } from '../src/layer2storage'
-process.env.GUN_ENV = 'false'
-import Gun from 'gun'
 require('gun/lib/then.js')
 require('gun/lib/unset.js')
 require('gun/lib/open.js')
@@ -8,6 +7,7 @@ require('gun/lib/load.js')
 require('gun/lib/not.js')
 require('gun/lib/path.js')
 
+process.env.GUN_ENV = 'false'
 /**
  * Dummy test
  */
@@ -60,7 +60,7 @@ describe('Dummy test', () => {
   })
 
   test('GunStorageProxy is instantiable', () => {
-    const gun = new Gun({ localStorage: true, radisk: false, WebSocket: false })
+    const gun = Gun({ localStorage: true, radisk: false })
     db = new GunStorageProxy(gun, 'lauren')
     expect(db.dbprefix).toEqual('lauren')
     //expect(new DummyClass()).toBeInstanceOf(DummyClass)

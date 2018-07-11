@@ -1,12 +1,14 @@
+import * as Gun from 'gun'
+// const Gun = require('gun');
 import { GunStorageProxy, LCState, VCState, Sig } from '../src/layer2storage'
-process.env.GUN_ENV = 'false'
-import Gun from 'gun'
 require('gun/lib/then.js')
 require('gun/lib/unset.js')
 require('gun/lib/open.js')
 require('gun/lib/load.js')
 require('gun/lib/not.js')
 require('gun/lib/path.js')
+
+process.env.GUN_ENV = 'false'
 
 /**
  * Dummy test
@@ -62,7 +64,7 @@ describe('Dummy test', () => {
   })
 
   test('GunStorageProxy is multiple instantiable', () => {
-    const gun = new Gun({ localStorage: true, radisk: false, WebSocket: false })
+    const gun = Gun({ localStorage: true, radisk: false })
     db0 = new GunStorageProxy(gun, 'alice')
     expect(db0.dbprefix).toEqual('alice')
 
@@ -180,7 +182,7 @@ describe('Dummy test', () => {
     done()
   })
 
-  test('GunStorageProxy storeLC alice/bob same obj', async (done: any) => {
+  test('GunStorageProxy storeLC alice/bob same obj 1/2', async (done: any) => {
     const lclone = clone(led)
     lclone.id = '123'
 
@@ -193,7 +195,7 @@ describe('Dummy test', () => {
     done()
   })
 
-  test('GunStorageProxy multi updateLC same obj', async (done: any) => {
+  test('GunStorageProxy multi updateLC same obj 2/2', async (done: any) => {
     const lclone2 = clone(led)
     lclone2.id = '123'
 

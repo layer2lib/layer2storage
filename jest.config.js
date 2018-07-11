@@ -1,14 +1,13 @@
 module.exports = {
-  "rootDir": "./",
   "transform": {
-    "^.+\\.tsx?$": "ts-jest"
+    ".(ts|tsx)": "./node_modules/ts-jest/preprocessor.js"
   },
   /*"globals": {
     "ts-jest": {
       "tsConfigFile": "tsconfig.json"
     }
   },*/
-  "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
+  "testRegex": "(/__tests__/.*|\\.(test|spec))\\.(ts|tsx|js)$",
   "testPathIgnorePatterns": ["/lib/", "/node_modules/"],
   "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
   "coverageThreshold": {
@@ -19,6 +18,13 @@ module.exports = {
       "statements": 80
     }
   },
+  "coveragePathIgnorePatterns": [
+    "/node_modules/",
+    "/test/"
+  ],
+  "testPathIgnorePatterns": [
+    "/node_modules/"
+  ],
   "bail": true,
   "collectCoverage": true
 };
