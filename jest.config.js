@@ -7,6 +7,7 @@ module.exports = {
       "tsConfigFile": "tsconfig.json"
     }
   },*/
+  "testEnvironment": "node",
   "testRegex": "(/__tests__/.*|\\.(test|spec))\\.(ts|tsx|js)$",
   "testPathIgnorePatterns": ["/lib/", "/node_modules/"],
   "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],

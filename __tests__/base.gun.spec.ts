@@ -394,6 +394,12 @@ describe('Dummy test', () => {
     expect(lcs.length).toEqual(0)
     done()*/
   })
+
+  test('GunStorageProxy close', async (done: any) => {
+    db.disconnect()
+    db = null
+    done()
+  })
 })
 
 function clone(obj: any) {

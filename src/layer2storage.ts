@@ -172,6 +172,12 @@ export class GunStorageProxy implements L2Database {
   public get dbprefix() {
     return this.prefix
   }
+  public disconnect() {
+    this.gun.bye()
+  }
+  public get _gun() {
+    return this.gun
+  }
   private get _db() {
     return this.gun.get(this.prefix)
   }
