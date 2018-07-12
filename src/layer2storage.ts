@@ -159,7 +159,7 @@ export class GunStorageProxy implements L2Database {
     if (!gun) throw new Error('Gun instance missing from constructor')
     this.gun = gun
     this.prefix = prefix
-    this.user = gun.user()
+    this.user = {} //gun.user()
 
     this._lc = this._db.get('ledger')
     this._lcs = this._db.get('ledgers')

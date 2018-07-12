@@ -58,22 +58,24 @@ describe('Dummy test', () => {
 
   test('works if true is truthy', () => {
     expect(true).toBeTruthy()
+    expect(typeof window).toEqual('undefined')
   })
 
-  test('GunStorageProxy is instantiable', () => {
+  test('GunStorageProxy is instantiable', done => {
     const gun = Gun({ localStorage: true, radisk: false })
     db = new GunStorageProxy(gun, 'lauren')
     expect(db.dbprefix).toEqual('lauren')
-
+    done()
     // await db.register('1', '2')
     // await db.login('1', '2')
     //expect(new DummyClass()).toBeInstanceOf(DummyClass)
   })
 
-  test('GunStorageProxy set get', async () => {
+  test('GunStorageProxy set get', async done => {
     await db.set('test', { key: '123' })
     const val = await db.get('test')
     expect(val).toMatchObject({ key: '123' })
+    done()
     //expect(new DummyClass()).toBeInstanceOf(DummyClass)
   })
 
