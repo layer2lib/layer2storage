@@ -151,19 +151,29 @@ export class GunStorageProxy implements L2Database {
 
   private _lcs: any
   private _lc: any
-
   private _vc: any
-  private _vcs: any
+
+  private user: any
   constructor(gun: Gun, prefix: string = 'layer2') {
     // super()
     if (!gun) throw new Error('Gun instance missing from constructor')
     this.gun = gun
     this.prefix = prefix
+    this.user = gun.user()
 
     this._lc = this._db.get('ledger')
     this._lcs = this._db.get('ledgers')
-
     this._vc = this._db.get('vchannel')
+  }
+  async login(username: string, pw: string, cb: any): Promise<any> {
+    const re = this.user.auth(username, pw, cb)
+
+    return re
+  }
+  async register(username: string, pw: string, cb: any): Promise<any> {
+    const res = await this.user.create(username, pw, cb).then()
+    // automatically then login
+    return res
   }
   logdriver() {
     // Log out current engine

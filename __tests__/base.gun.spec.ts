@@ -1,4 +1,6 @@
-import * as Gun from 'gun'
+process.env.GUN_ENV = 'false'
+import * as Gun from 'gun/gun'
+require('gun/sea.js')
 import { GunStorageProxy, LCState, VCState, Sig } from '../src/layer2storage'
 require('gun/lib/then.js')
 require('gun/lib/unset.js')
@@ -6,12 +8,11 @@ require('gun/lib/open.js')
 require('gun/lib/load.js')
 require('gun/lib/not.js')
 require('gun/lib/path.js')
-
-process.env.GUN_ENV = 'false'
 /**
  * Dummy test
  */
 jest.setTimeout(1200)
+
 describe('Dummy test', () => {
   let db: GunStorageProxy = null
   const sigCase = {
@@ -63,6 +64,9 @@ describe('Dummy test', () => {
     const gun = Gun({ localStorage: true, radisk: false })
     db = new GunStorageProxy(gun, 'lauren')
     expect(db.dbprefix).toEqual('lauren')
+
+    // await db.register('1', '2')
+    // await db.login('1', '2')
     //expect(new DummyClass()).toBeInstanceOf(DummyClass)
   })
 

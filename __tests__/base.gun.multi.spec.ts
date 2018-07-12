@@ -1,5 +1,5 @@
 import * as Gun from 'gun'
-// const Gun = require('gun');
+require('gun/sea.js')
 import { GunStorageProxy, LCState, VCState, Sig } from '../src/layer2storage'
 require('gun/lib/then.js')
 require('gun/lib/unset.js')
@@ -63,14 +63,38 @@ describe('Dummy test', () => {
     expect(true).toBeTruthy()
   })
 
-  test('GunStorageProxy is multiple instantiable', () => {
-    const gun = Gun({ localStorage: true, radisk: false })
+  test('GunStorageProxy is multiple instantiable', async done => {
+    const gun = Gun({ localStorage: true, radata: true })
     db0 = new GunStorageProxy(gun, 'alice')
     expect(db0.dbprefix).toEqual('alice')
 
     db1 = new GunStorageProxy(gun, 'bob')
     expect(db1.dbprefix).toEqual('bob')
+
+    done()
     //expect(new DummyClass()).toBeInstanceOf(DummyClass)
+  })
+
+  test('GunStorageProxy register users', async done => {
+    db0.register('bob', 'test123', err => {
+      expect(err).toHaveProperty('ok')
+      db1.register('alice', 'test1234', err => {
+        expect(err).toHaveProperty('ok')
+        done()
+      })
+    })
+  })
+
+  test('GunStorageProxy login users', async done => {
+    db0.login('bob', 'test123', err => {
+      expect(err).toHaveProperty('ok')
+      db1.login('alice', 'test1234', err => {
+        expect(err).toHaveProperty('ok')
+        done()
+      })
+    })
+    //await db0.login('alice', 'test123')
+    //console.log('=-11=', r)
   })
 
   test('GunStorageProxy set get', async () => {

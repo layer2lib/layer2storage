@@ -1,6 +1,6 @@
 module.exports = {
   "transform": {
-    ".(ts|tsx)": "./node_modules/ts-jest/preprocessor.js"
+    "\.ts": "ts-jest"
   },
   /*"globals": {
     "ts-jest": {
