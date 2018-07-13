@@ -159,21 +159,18 @@ export class GunStorageProxy implements L2Database {
     if (!gun) throw new Error('Gun instance missing from constructor')
     this.gun = gun
     this.prefix = prefix
-    this.user = {} //gun.user()
+    this.user = gun.user ? gun.user() : {}
 
     this._lc = this._db.get('ledger')
     this._lcs = this._db.get('ledgers')
     this._vc = this._db.get('vchannel')
   }
-  async login(username: string, pw: string, cb: any): Promise<any> {
-    const re = this.user.auth(username, pw, cb)
-
-    return re
+  login(username: string, pw: string, cb: any) {
+    this.user.auth(username, pw, cb)
   }
-  async register(username: string, pw: string, cb: any): Promise<any> {
-    const res = await this.user.create(username, pw, cb).then()
+  register(username: string, pw: string, cb: any) {
+    this.user.create(username, pw, cb)
     // automatically then login
-    return res
   }
   logdriver() {
     // Log out current engine
@@ -183,7 +180,8 @@ export class GunStorageProxy implements L2Database {
     return this.prefix
   }
   public disconnect() {
-    this.gun.bye()
+    // gun.user().leave()
+    // this.gun.bye()
   }
   public get _gun() {
     return this.gun

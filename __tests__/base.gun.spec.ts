@@ -1,6 +1,6 @@
 process.env.GUN_ENV = 'false'
-import * as Gun from 'gun/gun'
-require('gun/sea.js')
+import * as Gun from 'gun'
+// require('gun/sea.js')
 import { GunStorageProxy, LCState, VCState, Sig } from '../src/layer2storage'
 require('gun/lib/then.js')
 require('gun/lib/unset.js')

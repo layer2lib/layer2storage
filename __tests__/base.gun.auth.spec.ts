@@ -1,5 +1,5 @@
 process.env.GUN_ENV = 'false'
-import * as Gun from 'gun/gun'
+import * as Gun from 'gun'
 require('gun/sea.js')
 import { GunStorageProxy, LCState, VCState, Sig } from '../src/layer2storage'
 require('gun/lib/then.js')
@@ -11,7 +11,7 @@ require('gun/lib/path.js')
 /**
  * Dummy test
  */
-jest.setTimeout(900)
+jest.setTimeout(800)
 
 describe('Dummy test', () => {
   let db: GunStorageProxy = null
@@ -62,7 +62,7 @@ describe('Dummy test', () => {
   })
 
   test('GunStorageProxy is instantiable', done => {
-    const gun = Gun({ localStorage: true, radisk: false })
+    const gun = Gun({ localStorage: true, radisk: true })
     db = new GunStorageProxy(gun, 'lauren')
     expect(db.dbprefix).toEqual('lauren')
     done()
@@ -71,18 +71,27 @@ describe('Dummy test', () => {
     //expect(new DummyClass()).toBeInstanceOf(DummyClass)
   })
 
+  test('GunStorageProxy register users', async done => {
+    db.register('bob', 'test123', err => {
+      console.log(err, err)
+      expect(err).toHaveProperty('ok')
+      setTimeout(done, 50)
+    })
+  })
+
+  test('GunStorageProxy login users', async done => {
+    db.login('bob', 'test123', err => {
+      expect(err).toHaveProperty('ok')
+      done()
+    })
+  })
+
   test('GunStorageProxy set get', async done => {
     await db.set('test', { key: '123' })
     const val = await db.get('test')
     expect(val).toMatchObject({ key: '123' })
     done()
     //expect(new DummyClass()).toBeInstanceOf(DummyClass)
-  })
-
-  test('GunStorageProxy check cleared local storage', async (done: any) => {
-    const noLC = await db.getLC(led.id)
-    expect(noLC).toBeNull()
-    done()
   })
 })
 
