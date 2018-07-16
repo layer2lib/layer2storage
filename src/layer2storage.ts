@@ -585,6 +585,84 @@ export class GunStorageProxy implements L2Database {
   }
 }
 
+type Firestore = any
+export class FirebaseStorageProxy implements L2Database {
+  db: Firestore = null
+  prefix: string = ''
+
+  constructor(db: Firestore, prefix: string = 'layer2') {
+    // super()
+    if (!db) throw new Error('Firestore instance missing from constructor')
+    this.db = db
+    this.prefix = prefix
+  }
+
+  logdriver(): void {}
+  set(k: string, v: any): void {}
+  get(k: string): any {}
+
+  storeLC(data: LCState): Promise<LCState> {
+    return {} as any
+  }
+  updateLC(data: LCState): Promise<LCState> {
+    return {} as any
+  }
+  getLC(ledgerID: LCID): Promise<LCState> {
+    return {} as any
+  }
+  getLCElder(id: LCID): Promise<LCState | null> {
+    return {} as any
+  }
+
+  getLCbyNonce(id: LCID, seq: number): Promise<LCState | null> {
+    return {} as any
+  }
+  getLCs(cb: (lc: LCState) => void): void {} // TODO replace above
+  getLCsList(): Promise<LCState[]> {
+    return {} as any
+  }
+
+  delLC(id: LCID): Promise<void> {
+    return {} as any
+  }
+
+  storeVChannel(data: VCState): Promise<VCState> {
+    return {} as any
+  }
+  delVChannel(chan: VCID): Promise<void> {
+    return {} as any
+  }
+  // replace if same nonce
+  updateVChannel(data: VCState): Promise<VCState> {
+    return {} as any
+  }
+  getVChannel(id: VCID): Promise<VCState | null> {
+    return {} as any
+  } // latest by nonce
+  getVChannelElder(id: VCID): Promise<VCState | null> {
+    return {} as any
+  } // latest by nonce
+  getVChannelbyNonce(id: VCID, seq: number): Promise<VCState | null> {
+    return {} as any
+  }
+
+  getVChannels(ledger: LCID, cb: (lc: VCState) => void): void {} // latest by nonce
+  getVChannelsList(ledger: LCID): Promise<VCState[]> {
+    return {} as any
+  }
+  getAllVChannels(cb: (lc: VCState) => void): void {}
+  getAllVChannelsList(): Promise<VCState[]> {
+    return {} as any
+  }
+
+  getVChannelStateCount(id: string): Promise<number> {
+    return {} as any
+  }
+  getLCStateCount(id: string): Promise<number> {
+    return {} as any
+  }
+}
+
 /*async function _listify(gunkey: any, getHead: boolean = true): Promise<any[]> {
   if (!getHead) {
     return new Promise<any[]>((resolve, rejected) => {
