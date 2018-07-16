@@ -606,13 +606,14 @@ export class FirebaseStorageProxy implements L2Database {
   get(k: string): any {}
 
   storeLC(data: LCState): Promise<LCState> {
-    return this.db.doc(`ledgers/${data.id}`).set(data)
+    return this.db.doc(`${this.prefix}/ledgers/${data.id}`).set(data)
   }
   updateLC(data: LCState): Promise<LCState> {
     return {} as any
   }
   async getLC(ledgerID: LCID): Promise<LCState> {
-    const doc = await this.db.doc(`ledgers/${ledgerID}`).get()
+    const doc = await this.db.doc(`${this.prefix}/ledgers/${ledgerID}`).get()
+
     return handleFirestoreDoc(doc)
   }
   getLCElder(id: LCID): Promise<LCState | null> {
