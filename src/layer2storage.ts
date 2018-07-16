@@ -586,6 +586,10 @@ export class GunStorageProxy implements L2Database {
 }
 
 type Firestore = any
+function handleFirestoreDoc(doc: any): any {
+  if (!doc.exists) return {}
+  return doc.data()
+}
 export class FirebaseStorageProxy implements L2Database {
   db: Firestore = null
   prefix: string = ''
@@ -602,13 +606,14 @@ export class FirebaseStorageProxy implements L2Database {
   get(k: string): any {}
 
   storeLC(data: LCState): Promise<LCState> {
-    return {} as any
+    return this.db.doc(`ledgers/${data.id}`).set(data)
   }
   updateLC(data: LCState): Promise<LCState> {
     return {} as any
   }
-  getLC(ledgerID: LCID): Promise<LCState> {
-    return {} as any
+  async getLC(ledgerID: LCID): Promise<LCState> {
+    const doc = await this.db.doc(`ledgers/${ledgerID}`).get()
+    return handleFirestoreDoc(doc)
   }
   getLCElder(id: LCID): Promise<LCState | null> {
     return {} as any
