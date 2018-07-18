@@ -602,19 +602,27 @@ export class FirebaseStorageProxy implements L2Database {
   }
 
   logdriver(): void {}
-  set(k: string, v: any): void {}
-  get(k: string): any {}
+
+  set(k: string, v: any): Promise<any> {
+    return this.db.doc(`${this.prefix}/${k}`).set(v)
+  }
+
+  async get(k: string): Promise<any> {
+    const doc = await this.db.doc(`${this.prefix}/${k}`).get()
+
+    return handleFirestoreDoc(doc)
+  }
 
   storeLC(data: LCState): Promise<LCState> {
-    return this.db.doc(`${this.prefix}/ledgers/${data.id}`).set(data)
+    return this.set(`ledgers/${data.id}`, data)
   }
+
   updateLC(data: LCState): Promise<LCState> {
     return {} as any
   }
-  async getLC(ledgerID: LCID): Promise<LCState> {
-    const doc = await this.db.doc(`${this.prefix}/ledgers/${ledgerID}`).get()
 
-    return handleFirestoreDoc(doc)
+  getLC(ledgerID: LCID): Promise<LCState> {
+    return this.get(`ledgers/${ledgerID}`)
   }
   getLCElder(id: LCID): Promise<LCState | null> {
     return {} as any
